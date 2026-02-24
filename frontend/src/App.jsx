@@ -8,12 +8,6 @@ import Suppliers from './pages/Suppliers';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
-    const { user, loading, isAdmin } = useAuth();
-
-    if (loading) return null;
-    if (!user) return <Login />;
-    if (adminOnly && !isAdmin) return <div className="container"><h1>Acceso Denegado</h1><p>Esta sección es solo para administradores.</p></div>;
-
     return children;
 };
 
@@ -25,10 +19,7 @@ const Dashboard = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h1>Dashboard de Eventos</h1>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <span style={{ fontSize: '0.875rem' }}>{user?.name} ({user?.role})</span>
-                    <button onClick={logout} className="btn" style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#ef4444', fontSize: '0.75rem' }}>
-                        Cerrar Sesión
-                    </button>
+                    <span style={{ fontSize: '0.875rem' }}>Desarrollador (Admin)</span>
                 </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
@@ -66,9 +57,6 @@ const NavItem = ({ to, icon: Icon, label }) => {
 };
 
 const MainLayout = ({ children }) => {
-    const { user } = useAuth();
-    if (!user) return <Login />;
-
     return (
         <div style={{ minHeight: '100vh', paddingBottom: '5rem' }}>
             {children}
