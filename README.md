@@ -37,7 +37,32 @@ Para que el login funcione, debes:
 - Sincronización automática de base de datos con Sequelize.
 - Contenerizado completamente con Docker.
 
-## Endpoints Disponibles
-- `GET /api/suppliers` - Listar proveedores.
-- `POST /api/suppliers` - Crear proveedor.
-- `GET /api/health` - Verificar estado del servidor.
+## Mantenimiento de Base de Datos
+
+Se han incluido scripts para facilitar el respaldo y la restauración de la base de datos MariaDB.
+
+### Usando PowerShell (Recomendado en Windows)
+
+**Realizar un backup:**
+```powershell
+.\scripts\db_manager.ps1 backup
+```
+*El archivo se guardará en la carpeta `backups/` con un timestamp.*
+
+**Restaurar un backup:**
+```powershell
+.\scripts\db_manager.ps1 restore -File .\backups\nombre_del_archivo.sql
+```
+
+### Usando Bash (Git Bash / WSL)
+
+**Realizar un backup:**
+```bash
+./scripts/db_manager.sh backup
+```
+
+**Restaurar un backup:**
+```bash
+./scripts/db_manager.sh restore ./backups/nombre_del_archivo.sql
+```
+
