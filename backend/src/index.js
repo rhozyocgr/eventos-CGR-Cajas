@@ -43,7 +43,7 @@ const startServer = async () => {
             await PaymentType.bulkCreate([
                 { name: 'Efectivo' },
                 { name: 'Tarjeta' },
-                { name: 'Transferencia' }
+                { name: 'SINPE' }
             ]);
             console.log('Seed: Payment types created.');
         }
