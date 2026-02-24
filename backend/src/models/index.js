@@ -1,0 +1,50 @@
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database.js';
+
+const User = sequelize.define('User', {
+    email: { type: DataTypes.STRING, allowNull: false, unique: true },
+    name: { type: DataTypes.STRING },
+    role: { type: DataTypes.ENUM('user', 'admin'), defaultValue: 'user' }
+});
+
+const Supplier = sequelize.define('Supplier', {
+    name: { type: DataTypes.STRING, allowNull: false },
+    contact: { type: DataTypes.STRING },
+    phone: { type: DataTypes.STRING }
+});
+
+const Product = sequelize.define('Product', {
+    name: { type: DataTypes.STRING, allowNull: false },
+    price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+    stock: { type: DataTypes.INTEGER, defaultValue: 0 }
+});
+
+const SalesDay = sequelize.define('SalesDay', {
+    date: { type: DataTypes.DATEONLY, allowNull: false },
+    description: { type: DataTypes.STRING }
+});
+
+const PaymentType = sequelize.define('PaymentType', {
+    name: { type: DataTypes.STRING, allowNull: false }
+});
+
+const Sale = sequelize.define('Sale', {
+    quantity: { type: DataTypes.INTEGER, allowNull: false },
+    total: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+    timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+});
+
+// Associations
+Supplier.hasMany(Product);
+Product.belongsTo(Supplier);
+
+SalesDay.hasMany(Sale);
+Sale.belongsTo(SalesDay);
+
+Product.hasMany(Sale);
+Sale.belongsTo(Product);
+
+PaymentType.hasMany(Sale);
+Sale.belongsTo(PaymentType);
+
+export { sequelize, User, Supplier, Product, SalesDay, PaymentType, Sale };
