@@ -60,7 +60,13 @@ Sale.belongsTo(Product);
 PaymentType.hasMany(Sale);
 Sale.belongsTo(PaymentType);
 
+Event.hasMany(SalesDay);
+SalesDay.belongsTo(Event);
+
 Event.belongsToMany(Product, { through: 'EventProducts' });
 Product.belongsToMany(Event, { through: 'EventProducts' });
+
+SalesDay.belongsToMany(Product, { through: 'DayProducts' });
+Product.belongsToMany(SalesDay, { through: 'DayProducts' });
 
 export { sequelize, User, Supplier, Product, SalesDay, PaymentType, Sale, Event };
