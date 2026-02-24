@@ -1,0 +1,693 @@
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import {
+    ShoppingCart,
+    Calendar,
+    ArrowLeft,
+    Plus,
+    Minus,
+    Trash2,
+    CheckCircle,
+    CreditCard,
+    Banknote,
+    Smartphone,
+    Search,
+    ChevronRight,
+    LayoutGrid,
+    Store,
+    Clock,
+    X,
+    Receipt
+} from 'lucide-react';
+
+const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000/api`;
+
+const NewSale = () => {
+    const [events, setEvents] = useState([]);
+    const [selectedEvent, setSelectedEvent] = useState(null);
+    const [eventDays, setEventDays] = useState([]);
+    const [selectedDay, setSelectedDay] = useState(null);
+    const [paymentTypes, setPaymentTypes] = useState([]);
+    const [suppliers, setSuppliers] = useState([]);
+
+    const [cart, setCart] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const [activeSupplier, setActiveSupplier] = useState('all');
+    const [showCheckout, setShowCheckout] = useState(false);
+    const [paymentLoading, setPaymentLoading] = useState(false);
+    const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+    const [lastSaleTotal, setLastSaleTotal] = useState(0);
+    const [lastPaymentType, setLastPaymentType] = useState('');
+    const [observation, setObservation] = useState('');
+    const [pendingSales, setPendingSales] = useState([]);
+    const [showPendingModal, setShowPendingModal] = useState(false);
+    const [selectedPendingSale, setSelectedPendingSale] = useState(null);
+    const [isPendingActive, setIsPendingActive] = useState(false);
+
+    useEffect(() => {
+        fetchInitialData();
+        const savedEventId = localStorage.getItem('selectedEventId');
+        const savedDayId = localStorage.getItem('selectedDayId');
+        if (savedEventId) {
+            fetchEventData(savedEventId, savedDayId);
+        }
+    }, []);
+
+    const fetchInitialData = async () => {
+        try {
+            setLoading(true);
+            const [eventsRes, paymentRes, suppliersRes] = await Promise.all([
+                axios.get(`${API_URL}/events`),
+                axios.get(`${API_URL}/sales/payment-types`),
+                axios.get(`${API_URL}/suppliers`)
+            ]);
+            setEvents(eventsRes.data);
+            setPaymentTypes(paymentRes.data);
+            setSuppliers(suppliersRes.data);
+        } catch (err) {
+            toast.error('Error al cargar datos iniciales');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchEventData = async (eventId, dayId = null) => {
+        try {
+            setLoading(true);
+            const res = await axios.get(`${API_URL}/events/${eventId}/days`);
+            setEventDays(res.data);
+
+            if (dayId) {
+                const day = res.data.find(d => d.id.toString() === dayId.toString());
+                if (day) {
+                    setSelectedDay(day);
+                    fetchPendingSales(day.id);
+                }
+            } else {
+                const today = new Date().toISOString().split('T')[0];
+                const todayDay = res.data.find(d => d.date === today);
+                if (todayDay) {
+                    setSelectedDay(todayDay);
+                    localStorage.setItem('selectedDayId', todayDay.id);
+                    fetchPendingSales(todayDay.id);
+                }
+            }
+        } catch (err) {
+            toast.error('Error al cargar días del evento');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSelectEvent = (event) => {
+        setSelectedEvent(event);
+        localStorage.setItem('selectedEventId', event.id);
+        localStorage.removeItem('selectedDayId');
+        setSelectedDay(null);
+        fetchEventData(event.id);
+    };
+
+    const handleSelectDay = (day) => {
+        setSelectedDay(day);
+        localStorage.setItem('selectedDayId', day.id);
+        fetchPendingSales(day.id);
+    };
+
+    const fetchPendingSales = async (dayId) => {
+        try {
+            const res = await axios.get(`${API_URL}/sales/pending?salesDayId=${dayId}`);
+            setPendingSales(res.data);
+        } catch (err) {
+            console.error('Error fetching pending sales', err);
+        }
+    };
+
+    const handleReset = () => {
+        localStorage.removeItem('selectedEventId');
+        localStorage.removeItem('selectedDayId');
+        setSelectedEvent(null);
+        setSelectedDay(null);
+        setCart([]);
+    };
+
+    const addToCart = (product) => {
+        const existing = cart.find(item => item.productId === product.id);
+        if (existing) {
+            setCart(cart.map(item =>
+                item.productId === product.id
+                    ? { ...item, quantity: item.quantity + 1 }
+                    : item
+            ));
+        } else {
+            setCart([...cart, {
+                productId: product.id,
+                name: product.name,
+                price: parseFloat(product.price),
+                quantity: 1
+            }]);
+        }
+    };
+
+    const updateQuantity = (productId, delta) => {
+        setCart(cart.map(item => {
+            if (item.productId === productId) {
+                const newQty = item.quantity + delta;
+                return newQty > 0 ? { ...item, quantity: newQty } : item;
+            }
+            return item;
+        }));
+    };
+
+    const removeFromCart = (productId) => {
+        setCart(cart.filter(item => item.productId !== productId));
+    };
+
+    const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+    const handleProcessSale = async (paymentTypeId) => {
+        if (cart.length === 0) return;
+
+        try {
+            setPaymentLoading(true);
+            await axios.post(`${API_URL}/sales`, {
+                salesDayId: selectedDay.id,
+                paymentTypeId: paymentTypeId,
+                observation: observation,
+                items: cart.map(item => ({
+                    productId: item.productId,
+                    quantity: item.quantity
+                }))
+            });
+
+            const pType = paymentTypes.find(t => t.id === paymentTypeId);
+            setLastPaymentType(pType?.name || '');
+            setLastSaleTotal(cartTotal);
+            setCart([]);
+            setObservation('');
+            setShowCheckout(false);
+            setShowSuccessOverlay(true);
+
+            // Auto-hide overlay after 2 seconds
+            setTimeout(() => {
+                setShowSuccessOverlay(false);
+            }, 2000);
+            fetchPendingSales(selectedDay.id);
+            setIsPendingActive(false); // Reset for next sale
+        } catch (err) {
+            toast.error('Error al procesar la venta');
+        } finally {
+            setPaymentLoading(false);
+        }
+    };
+
+    const handleUpdatePayment = async (transactionId, paymentTypeId) => {
+        try {
+            setPaymentLoading(true);
+            await axios.put(`${API_URL}/sales/${transactionId}/payment-type`, { paymentTypeId });
+            toast.success('Cobro completado con éxito');
+            setSelectedPendingSale(null);
+            fetchPendingSales(selectedDay.id);
+        } catch (err) {
+            toast.error('Error al actualizar pago');
+        } finally {
+            setPaymentLoading(false);
+        }
+    };
+
+    const getPaymentIcon = (name) => {
+        const n = name.toLowerCase();
+        if (n.includes('efectivo')) return <Banknote size={24} />;
+        if (n.includes('tarjeta')) return <CreditCard size={24} />;
+        if (n.includes('sinpe')) return <Smartphone size={24} />;
+        if (n.includes('pendiente')) return <Clock size={24} />;
+        return <CheckCircle size={24} />;
+    };
+
+    const filteredProducts = selectedDay?.Products?.filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+        const matchesSupplier = activeSupplier === 'all' || p.SupplierId?.toString() === activeSupplier;
+        return matchesSearch && matchesSupplier;
+    }) || [];
+
+    const currentDaySuppliers = suppliers.filter(s =>
+        selectedDay?.Products?.some(p => p.SupplierId === s.id)
+    );
+
+    if (!selectedEvent) {
+        return (
+            <div className="container" style={{ maxWidth: '800px' }}>
+                <div style={{ textAlign: 'center', marginBottom: '3rem', marginTop: '2rem' }}>
+                    <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem', color: 'var(--primary)' }}>Ventas</h1>
+                    <p style={{ color: 'var(--text-secondary)' }}>Selecciona el evento actual</p>
+                </div>
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                    {events.map(ev => (
+                        <div key={ev.id} className="glass-card hover-glow"
+                            style={{ padding: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1.5rem' }}
+                            onClick={() => handleSelectEvent(ev)}>
+                            {ev.logo ? (
+                                <img src={ev.logo} alt="" style={{ width: '60px', height: '60px', borderRadius: '0.8rem', objectFit: 'cover' }} />
+                            ) : (
+                                <div style={{ width: '60px', height: '60px', borderRadius: '0.8rem', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Calendar size={30} color="var(--primary)" />
+                                </div>
+                            )}
+                            <div style={{ flex: 1 }}>
+                                <h3 style={{ margin: 0 }}>{ev.name}</h3>
+                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
+                                    {new Date(ev.startDate).toLocaleDateString()}
+                                </p>
+                            </div>
+                            <ChevronRight size={24} color="var(--glass-border)" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    if (!selectedDay) {
+        return (
+            <div className="container" style={{ maxWidth: '800px' }}>
+                <button onClick={() => setSelectedEvent(null)} className="btn" style={{ background: 'none', color: 'var(--text-secondary)', marginBottom: '1.5rem', padding: 0 }}>
+                    <ArrowLeft size={18} /> Cambiar Evento
+                </button>
+                <h1 style={{ marginBottom: '1.5rem' }}>Día de Venta</h1>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
+                    {eventDays.map(day => (
+                        <div key={day.id} className="glass-card hover-glow"
+                            style={{ padding: '2rem 1rem', cursor: 'pointer', textAlign: 'center' }}
+                            onClick={() => handleSelectDay(day)}>
+                            <h3 style={{ color: 'var(--primary)', marginBottom: '0.5rem' }}>
+                                {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                            </h3>
+                            <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>{day.Products?.length || 0} productos</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div style={{ height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            {/* Nav POS */}
+            <div className="glass-card" style={{ padding: '0.7rem 1rem', borderRadius: 0, borderTop: 'none', borderLeft: 'none', borderRight: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 50 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                    <button onClick={handleReset} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '0.5rem', borderRadius: '0.5rem', cursor: 'pointer' }}>
+                        <ArrowLeft size={18} />
+                    </button>
+                    <div>
+                        <h4 style={{ margin: 0, fontSize: '0.9rem' }}>{selectedEvent.name}</h4>
+                        <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>
+                            {new Date(selectedDay.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                        </p>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <button
+                        onClick={() => setShowPendingModal(true)}
+                        style={{ position: 'relative', background: 'rgba(245, 158, 11, 0.1)', border: 'none', color: '#f59e0b', padding: '0.6rem', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                        <Clock size={18} />
+                        {pendingSales.length > 0 && (
+                            <span style={{ position: 'absolute', top: '-5px', right: '-5px', background: '#ef4444', color: 'white', fontSize: '0.6rem', padding: '0.2rem 0.4rem', borderRadius: '1rem', fontWeight: 'bold' }}>
+                                {pendingSales.length}
+                            </span>
+                        )}
+                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Pendientes</span>
+                    </button>
+                    <div style={{ textAlign: 'right', marginLeft: '0.5rem' }}>
+                        <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Total Sesión</p>
+                        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--accent)' }}>₡0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: 'row' }}>
+                {/* Catalog */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+                    {/* Filters & Search */}
+                    <div style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>
+                        <div style={{ position: 'relative', marginBottom: '1rem' }}>
+                            <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                            <input
+                                type="text" placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)}
+                                style={{ width: '100%', padding: '0.8rem 1rem 0.8rem 2.8rem', borderRadius: '2rem', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)', color: 'white', outline: 'none' }}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.2rem' }} className="no-scrollbar">
+                            <button
+                                onClick={() => setActiveSupplier('all')}
+                                style={{
+                                    padding: '0.5rem 1rem', borderRadius: '2rem', whiteSpace: 'nowrap', fontSize: '0.8rem', cursor: 'pointer', border: '1px solid',
+                                    background: activeSupplier === 'all' ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                                    borderColor: activeSupplier === 'all' ? 'var(--primary)' : 'var(--glass-border)',
+                                    color: 'white'
+                                }}
+                            >
+                                Todos
+                            </button>
+                            {currentDaySuppliers.map(s => (
+                                <button
+                                    key={s.id}
+                                    onClick={() => setActiveSupplier(s.id.toString())}
+                                    style={{
+                                        padding: '0.5rem 1rem', borderRadius: '2rem', whiteSpace: 'nowrap', fontSize: '0.8rem', cursor: 'pointer', border: '1px solid',
+                                        background: activeSupplier === s.id.toString() ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                                        borderColor: activeSupplier === s.id.toString() ? 'var(--primary)' : 'var(--glass-border)',
+                                        color: 'white'
+                                    }}
+                                >
+                                    {s.name}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.8rem', alignContent: 'flex-start' }}>
+                        {filteredProducts.map(p => (
+                            <div key={p.id} className="glass-card hover-glow"
+                                onClick={() => addToCart(p)}
+                                style={{ padding: '1rem', cursor: 'pointer', textAlign: 'center', minHeight: '100px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '0.4rem' }}>
+                                <span style={{ fontWeight: 'bold', fontSize: '1rem', lineHeight: '1.2' }}>{p.name}</span>
+                                <span style={{ color: 'var(--accent)', fontWeight: 'bold', fontSize: '1rem' }}>₡{new Intl.NumberFormat('es-CR').format(p.price)}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Cart Bar */}
+                <div className="cart-sidebar" style={{ width: window.innerWidth < 768 ? '100%' : '350px' }}>
+                    <div style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: 'bold' }}>Carrito ({cart.length})</span>
+                        <button onClick={() => setCart([])} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer' }}>Vaciar</button>
+                    </div>
+
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem' }}>
+                        {cart.map(item => (
+                            <div key={item.productId} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', marginBottom: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                <div style={{ flex: 1 }}>
+                                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 'bold' }}>{item.name}</p>
+                                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--accent)' }}>₡{new Intl.NumberFormat('es-CR').format(item.price)}</p>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <button onClick={() => updateQuantity(item.productId, -1)} style={{ width: '28px', height: '28px', borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.05)', color: 'white' }}><Minus size={14} /></button>
+                                    <span style={{ fontSize: '0.9rem', fontWeight: 'bold', width: '20px', textAlign: 'center' }}>{item.quantity}</span>
+                                    <button onClick={() => updateQuantity(item.productId, 1)} style={{ width: '28px', height: '28px', borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.05)', color: 'white' }}><Plus size={14} /></button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div style={{ padding: '1rem', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid var(--glass-border)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                            <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Total</span>
+                            <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--accent)' }}>₡{new Intl.NumberFormat('es-CR').format(cartTotal)}</span>
+                        </div>
+                        <button
+                            disabled={cart.length === 0}
+                            onClick={() => setShowCheckout(true)}
+                            style={{ width: '100%', padding: '1rem', borderRadius: '0.8rem', background: 'var(--primary)', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', opacity: cart.length === 0 ? 0.5 : 1 }}
+                        >
+                            PAGAR (₡{new Intl.NumberFormat('es-CR').format(cartTotal)})
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Payment Modal */}
+            {showCheckout && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '1rem' }}>
+                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '450px', textAlign: 'center' }}>
+                        <h2 style={{ marginBottom: '1.5rem' }}>{isPendingActive ? 'Detalle Pedido Pendiente' : 'Método de Pago'}</h2>
+                        <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--accent)', marginBottom: '1.5rem' }}>
+                            ₡{new Intl.NumberFormat('es-CR').format(cartTotal)}
+                        </div>
+
+                        {isPendingActive ? (
+                            <div style={{ animation: 'fadeIn 0.3s ease' }}>
+                                <div style={{ marginBottom: '2rem', textAlign: 'left' }}>
+                                    <label style={{ display: 'block', fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                                        Nota / Mesa / Nombre *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        autoFocus
+                                        placeholder="Ej: Nombre de la persona"
+                                        value={observation}
+                                        onChange={(e) => setObservation(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '1rem',
+                                            borderRadius: '0.8rem',
+                                            border: '2px solid var(--primary)',
+                                            background: 'rgba(255,255,255,0.05)',
+                                            color: 'white',
+                                            outline: 'none',
+                                            fontSize: '1.1rem'
+                                        }}
+                                    />
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                                        Este campo es obligatorio para pedidos pendientes.
+                                    </p>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <button
+                                        onClick={() => {
+                                            if (!observation.trim()) {
+                                                toast.error('Por favor, ingresa un nombre o referencia para el pendiente');
+                                                return;
+                                            }
+                                            const pType = paymentTypes.find(t => t.name.toLowerCase().includes('pendiente'));
+                                            handleProcessSale(pType.id);
+                                        }}
+                                        style={{ width: '100%', padding: '1rem', borderRadius: '0.8rem', background: '#f59e0b', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer' }}
+                                    >
+                                        CONFIRMAR PENDIENTE
+                                    </button>
+                                    <button
+                                        onClick={() => setIsPendingActive(false)}
+                                        style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem' }}
+                                    >
+                                        Elegir otro método
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                                    {paymentTypes.map(type => (
+                                        <button key={type.id}
+                                            onClick={() => {
+                                                if (type.name.toLowerCase().includes('pendiente')) {
+                                                    setIsPendingActive(true);
+                                                } else {
+                                                    handleProcessSale(type.id);
+                                                }
+                                            }}
+                                            style={{
+                                                padding: '1.2rem 0.5rem',
+                                                borderRadius: '1.2rem',
+                                                background: type.name.toLowerCase().includes('pendiente') ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255,255,255,0.05)',
+                                                border: '1px solid',
+                                                borderColor: type.name.toLowerCase().includes('pendiente') ? 'rgba(245, 158, 11, 0.3)' : 'var(--glass-border)',
+                                                color: 'white',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                gap: '0.6rem',
+                                                transition: 'all 0.2s'
+                                            }}
+                                            className="hover-glow">
+                                            <div style={{ color: type.name.toLowerCase().includes('pendiente') ? '#f59e0b' : 'inherit' }}>
+                                                {getPaymentIcon(type.name)}
+                                            </div>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{type.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setShowCheckout(false);
+                                        setIsPendingActive(false);
+                                        setObservation('');
+                                    }}
+                                    style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                                >
+                                    Volver al carrito
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* PENDING TRANSACTIONS MODAL */}
+            {showPendingModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4000, padding: '1rem' }}>
+                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                <Clock size={24} color="#f59e0b" /> Ventas Pendientes
+                            </h2>
+                            <button onClick={() => setShowPendingModal(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={24} /></button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            {pendingSales.map(transaction => (
+                                <div key={transaction.id} className="glass-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
+                                                <Receipt size={18} color="#f59e0b" />
+                                                <span style={{ fontWeight: '900', fontSize: '1.1rem' }}>Transacción #{transaction.id}</span>
+                                            </div>
+                                            {transaction.observation && (
+                                                <p style={{ margin: '0.2rem 0', fontSize: '1rem', color: '#f59e0b', fontWeight: '700' }}>
+                                                    📝 {transaction.observation}
+                                                </p>
+                                            )}
+                                            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                                {new Date(transaction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <span style={{ fontWeight: '900', color: 'var(--accent)', fontSize: '1.4rem', display: 'block' }}>₡{new Intl.NumberFormat('es-CR').format(transaction.total)}</span>
+                                            <button
+                                                onClick={() => setSelectedPendingSale(transaction)}
+                                                style={{ marginTop: '0.5rem', padding: '0.6rem 1.5rem', borderRadius: '0.5rem', background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+                                            >
+                                                Cobrar Todo
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '0.5rem', padding: '0.8rem' }}>
+                                        <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', opacity: 0.5 }}>Detalle de productos:</p>
+                                        {transaction.Sales?.map(sale => (
+                                            <div key={sale.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.3rem', paddingBottom: '0.3rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                                <span>{sale.Product?.name} <span style={{ opacity: 0.6 }}>x{sale.quantity}</span></span>
+                                                <span style={{ fontWeight: '500' }}>₡{new Intl.NumberFormat('es-CR').format(sale.total)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                            {pendingSales.length === 0 && (
+                                <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.5 }}>
+                                    <Clock size={48} style={{ marginBottom: '1rem', margin: '0 auto' }} />
+                                    <p>No hay ventas pendientes de pago.</p>
+                                </div>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => setShowPendingModal(false)}
+                            style={{ width: '100%', marginTop: '2rem', padding: '1rem', borderRadius: '0.8rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', cursor: 'pointer' }}
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* PAYMENT UPDATE MODAL */}
+            {selectedPendingSale && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4500, padding: '1rem' }}>
+                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '450px', textAlign: 'center' }}>
+                        <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
+                            <button onClick={() => setSelectedPendingSale(null)} style={{ position: 'absolute', right: '-1rem', top: '-1rem', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><X size={20} /></button>
+                            <h2 style={{ marginBottom: '0.5rem' }}>Cobrar Transacción</h2>
+                            <p style={{ color: 'var(--text-secondary)' }}>{selectedPendingSale.observation || `Pedido #${selectedPendingSale.id}`}</p>
+                        </div>
+
+                        <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--accent)', marginBottom: '2.5rem' }}>
+                            ₡{new Intl.NumberFormat('es-CR').format(selectedPendingSale.total)}
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+                            {paymentTypes.filter(t => t.name !== 'Pendiente').map(type => (
+                                <button key={type.id} onClick={() => handleUpdatePayment(selectedPendingSale.id, type.id)}
+                                    style={{ padding: '1.5rem 0.5rem', borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'white', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}
+                                    className="hover-glow">
+                                    {getPaymentIcon(type.name)}
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{type.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <button onClick={() => setSelectedPendingSale(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>Cancelar</button>
+                    </div>
+                </div>
+            )}
+
+            {/* FULL SCREEN SUCCESS OVERLAY */}
+            {showSuccessOverlay && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: lastPaymentType.toLowerCase().includes('pendiente') ? '#f59e0b' : 'var(--accent)',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', zIndex: 5000,
+                    animation: 'fadeIn 0.3s ease'
+                }}>
+                    <div style={{
+                        background: 'white', borderRadius: '50%', padding: '2rem',
+                        marginBottom: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                        animation: 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                    }}>
+                        {lastPaymentType.toLowerCase().includes('pendiente') ? (
+                            <Clock size={100} color="#f59e0b" />
+                        ) : (
+                            <CheckCircle size={100} color="var(--accent)" />
+                        )}
+                    </div>
+                    <h1 style={{ fontSize: '4rem', color: 'white', fontWeight: '900', margin: 0, textShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>
+                        {lastPaymentType.toLowerCase().includes('pendiente') ? 'VENTA PENDIENTE' : '¡VENTA ÉXITO!'}
+                    </h1>
+                    <div style={{ fontSize: '2.5rem', color: 'white', opacity: 0.9, marginTop: '1rem', fontWeight: '700' }}>
+                        ₡{new Intl.NumberFormat('es-CR').format(lastSaleTotal)}
+                    </div>
+                </div>
+            )}
+
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes popIn {
+                    0% { transform: scale(0.5); opacity: 0; }
+                    70% { transform: scale(1.1); }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+                .cart-sidebar {
+                    display: flex;
+                    flex-direction: column;
+                    background: rgba(30, 41, 59, 1);
+                    border-left: 1px solid var(--glass-border);
+                }
+                @media (max-width: 767px) {
+                    .cart-sidebar {
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        height: auto;
+                        max-height: 80%;
+                        border-left: none;
+                        border-top: 1px solid var(--glass-border);
+                        transform: translateY(${cart.length === 0 && !showCheckout ? '90%' : '0'});
+                        transition: transform 0.3s ease;
+                    }
+                }
+                .no-scrollbar::-webkit-scrollbar { display: none; }
+                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            `}</style>
+        </div>
+    );
+};
+
+export default NewSale;

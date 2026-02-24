@@ -3,14 +3,21 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Plus, Loader2, Edit2, Trash2, X, Save, Calendar, Search, Image as ImageIcon } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000/api`;
 
 const Events = () => {
     const [events, setEvents] = useState([]);
     const [products, setProducts] = useState([]);
+    const [suppliers, setSuppliers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState(null);
+    const [isDaysModalOpen, setIsDaysModalOpen] = useState(false);
+    const [selectedEventDays, setSelectedEventDays] = useState([]);
+    const [currentEvent, setCurrentEvent] = useState(null);
+    const [isDayEditingModalOpen, setIsDayEditingModalOpen] = useState(false);
+    const [editingDay, setEditingDay] = useState(null);
+    const [dayFormData, setDayFormData] = useState({ productIds: [] });
 
     const [formData, setFormData] = useState({
         name: '',
@@ -21,6 +28,18 @@ const Events = () => {
         productIds: []
     });
 
+    const [productSearch, setProductSearch] = useState('');
+    const [filterSupplier, setFilterSupplier] = useState('');
+
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const year = date.getUTCFullYear();
+        return `${day}-${month}-${year}`;
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -28,12 +47,14 @@ const Events = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [eventsRes, productsRes] = await Promise.all([
+            const [eventsRes, productsRes, suppliersRes] = await Promise.all([
                 axios.get(`${API_URL}/events`),
-                axios.get(`${API_URL}/products`)
+                axios.get(`${API_URL}/products`),
+                axios.get(`${API_URL}/suppliers`)
             ]);
             setEvents(eventsRes.data);
             setProducts(productsRes.data);
+            setSuppliers(suppliersRes.data);
         } catch (err) {
             toast.error('Error al cargar datos');
         } finally {
@@ -63,6 +84,8 @@ const Events = () => {
                 productIds: []
             });
         }
+        setProductSearch('');
+        setFilterSupplier('');
         setIsModalOpen(true);
     };
 
@@ -98,7 +121,73 @@ const Events = () => {
             }
             setIsModalOpen(false);
         } catch (err) {
+            console.error(err);
             toast.error('Error al guardar el evento');
+        }
+    };
+
+    const toggleSupplierProducts = (supplierId, select) => {
+        const supplierProducts = products.filter(p => p.SupplierId === supplierId).map(p => p.id);
+        let newProductIds;
+        if (select) {
+            newProductIds = [...new Set([...formData.productIds, ...supplierProducts])];
+        } else {
+            newProductIds = formData.productIds.filter(id => !supplierProducts.includes(id));
+        }
+        setFormData({ ...formData, productIds: newProductIds });
+    };
+
+    const fetchEventDays = async (eventId) => {
+        try {
+            const res = await axios.get(`${API_URL}/events/${eventId}/days`);
+            setSelectedEventDays(res.data);
+        } catch (err) {
+            toast.error('Error al cargar los días del evento');
+        }
+    };
+
+    const handleOpenDaysModal = async (event) => {
+        setCurrentEvent(event);
+        await fetchEventDays(event.id);
+        setIsDaysModalOpen(true);
+    };
+
+    const handleOpenDayEdit = (day) => {
+        setEditingDay(day);
+        setDayFormData({
+            productIds: day.Products ? day.Products.map(p => p.id) : []
+        });
+        setProductSearch('');
+        setFilterSupplier('');
+        setIsDayEditingModalOpen(true);
+    };
+
+    const toggleDayProduct = (productId) => {
+        const newProductIds = dayFormData.productIds.includes(productId)
+            ? dayFormData.productIds.filter(id => id !== productId)
+            : [...dayFormData.productIds, productId];
+        setDayFormData({ ...dayFormData, productIds: newProductIds });
+    };
+
+    const toggleSupplierDayProducts = (supplierId, select) => {
+        const supplierProducts = products.filter(p => p.SupplierId === supplierId).map(p => p.id);
+        let newProductIds;
+        if (select) {
+            newProductIds = [...new Set([...dayFormData.productIds, ...supplierProducts])];
+        } else {
+            newProductIds = dayFormData.productIds.filter(id => !supplierProducts.includes(id));
+        }
+        setDayFormData({ ...dayFormData, productIds: newProductIds });
+    };
+
+    const handleSaveDayProducts = async () => {
+        try {
+            await axios.put(`${API_URL}/events/days/${editingDay.id}/products`, dayFormData);
+            toast.success('Productos del día actualizados');
+            await fetchEventDays(currentEvent.id);
+            setIsDayEditingModalOpen(false);
+        } catch (err) {
+            toast.error('Error al guardar productos del día');
         }
     };
 
@@ -171,21 +260,30 @@ const Events = () => {
                                         </div>
                                     </div>
                                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                        {ev.startDate} - {ev.endDate}
+                                        {formatDate(ev.startDate)} - {formatDate(ev.endDate)}
                                     </p>
                                 </div>
                             </div>
                             <p style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>{ev.description}</p>
                             <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '1rem' }}>
-                                <p style={{ fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Productos ({ev.Products?.length || 0}):</p>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                                    {ev.Products?.map(p => (
+                                    {ev.Products?.slice(0, 5).map(p => (
                                         <span key={p.id} style={{ fontSize: '0.7rem', background: 'rgba(255,255,255,0.05)', padding: '0.2rem 0.5rem', borderRadius: '1rem', border: '1px solid var(--glass-border)' }}>
                                             {p.name}
                                         </span>
                                     ))}
+                                    {ev.Products?.length > 5 && (
+                                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>+{ev.Products.length - 5} más</span>
+                                    )}
                                 </div>
                             </div>
+                            <button
+                                className="btn"
+                                style={{ width: '100%', marginTop: '1rem', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', border: '1px solid rgba(99, 102, 241, 0.2)' }}
+                                onClick={() => handleOpenDaysModal(ev)}
+                            >
+                                <Calendar size={18} /> Gestionar Días de Venta
+                            </button>
                         </div>
                     ))}
                 </div>
@@ -262,43 +360,384 @@ const Events = () => {
                                 />
                             </div>
 
-                            <div className="form-group">
-                                <label style={{ marginBottom: '1rem', display: 'block' }}>Productos Asociados</label>
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                                    gap: '0.5rem',
-                                    maxHeight: '200px',
-                                    overflowY: 'auto',
-                                    padding: '1rem',
+                            {editingEvent && (
+                                <div className="form-group" style={{
                                     background: 'rgba(0,0,0,0.2)',
-                                    borderRadius: '0.5rem'
+                                    padding: '1.5rem',
+                                    borderRadius: '0.8rem',
+                                    border: '1px solid var(--glass-border)'
                                 }}>
-                                    {products.map(p => (
-                                        <div
-                                            key={p.id}
-                                            onClick={() => toggleProduct(p.id)}
-                                            style={{
-                                                padding: '0.5rem',
-                                                borderRadius: '0.4rem',
-                                                fontSize: '0.8rem',
-                                                cursor: 'pointer',
-                                                border: '1px solid',
-                                                borderColor: formData.productIds.includes(p.id) ? 'var(--primary)' : 'var(--glass-border)',
-                                                background: formData.productIds.includes(p.id) ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-                                                transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            {p.name}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                        <label style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold' }}>📍 Productos por Proveedor ({formData.productIds.length})</label>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, productIds: products.map(p => p.id) })}
+                                                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}
+                                            >
+                                                Seleccionar Todo
+                                            </button>
+                                            <span style={{ color: 'var(--glass-border)' }}>|</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData({ ...formData, productIds: [] })}
+                                                style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}
+                                            >
+                                                Limpiar Todo
+                                            </button>
                                         </div>
-                                    ))}
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                                        <div style={{ position: 'relative', flex: 1 }}>
+                                            <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                                            <input
+                                                type="text"
+                                                placeholder="Buscar por nombre..."
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '0.8rem 0.8rem 0.8rem 2.8rem',
+                                                    borderRadius: '2rem',
+                                                    border: '1px solid var(--glass-border)',
+                                                    background: 'rgba(255,255,255,0.05)',
+                                                    color: 'white',
+                                                    outline: 'none',
+                                                    fontSize: '0.9rem'
+                                                }}
+                                                value={productSearch}
+                                                onChange={(e) => setProductSearch(e.target.value)}
+                                            />
+                                        </div>
+                                        <select
+                                            style={{
+                                                padding: '0.8rem 1rem',
+                                                borderRadius: '2rem',
+                                                border: '1px solid var(--glass-border)',
+                                                background: 'rgba(30,41,59,1)',
+                                                color: 'white',
+                                                outline: 'none',
+                                                fontSize: '0.9rem',
+                                                minWidth: '200px'
+                                            }}
+                                            value={filterSupplier}
+                                            onChange={(e) => setFilterSupplier(e.target.value)}
+                                        >
+                                            <option value="">Todos los Proveedores</option>
+                                            {suppliers.map(s => (
+                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxHeight: '450px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                        {suppliers
+                                            .filter(s => !filterSupplier || s.id.toString() === filterSupplier)
+                                            .map(s => {
+                                                const supplierProducts = products.filter(p =>
+                                                    p.SupplierId === s.id &&
+                                                    p.name.toLowerCase().includes(productSearch.toLowerCase())
+                                                );
+
+                                                if (supplierProducts.length === 0) return null;
+
+                                                const allSelected = supplierProducts.every(p => formData.productIds.includes(p.id));
+
+                                                return (
+                                                    <div key={s.id} style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '0.6rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
+                                                            <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{s.name}</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleSupplierProducts(s.id, !allSelected)}
+                                                                style={{
+                                                                    background: allSelected ? 'rgba(239, 68, 68, 0.1)' : 'rgba(99, 102, 241, 0.1)',
+                                                                    border: '1px solid ' + (allSelected ? 'rgba(239, 68, 68, 0.3)' : 'rgba(99, 102, 241, 0.3)'),
+                                                                    color: allSelected ? '#ef4444' : 'var(--primary)',
+                                                                    fontSize: '0.7rem',
+                                                                    padding: '0.3rem 0.6rem',
+                                                                    borderRadius: '0.4rem',
+                                                                    cursor: 'pointer'
+                                                                }}
+                                                            >
+                                                                {allSelected ? 'Desmarcar Todos' : 'Marcar Todos'}
+                                                            </button>
+                                                        </div>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.6rem' }}>
+                                                            {supplierProducts.map(p => (
+                                                                <div
+                                                                    key={p.id}
+                                                                    onClick={() => toggleProduct(p.id)}
+                                                                    style={{
+                                                                        padding: '0.8rem',
+                                                                        borderRadius: '0.5rem',
+                                                                        fontSize: '0.85rem',
+                                                                        cursor: 'pointer',
+                                                                        border: '1px solid',
+                                                                        borderColor: formData.productIds.includes(p.id) ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                                                                        background: formData.productIds.includes(p.id) ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255,255,255,0.03)',
+                                                                        transition: 'all 0.2s',
+                                                                        display: 'flex',
+                                                                        flexDirection: 'column',
+                                                                        gap: '0.2rem'
+                                                                    }}
+                                                                >
+                                                                    <span style={{ fontWeight: formData.productIds.includes(p.id) ? 'bold' : 'normal' }}>{p.name}</span>
+                                                                    <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>
+                                                                        ₡{new Intl.NumberFormat('es-CR').format(p.price)}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+
+                                        {/* Productos sin proveedor - Solo mostrar si no hay filtro de proveedor o si el filtro es vacío */}
+                                        {!filterSupplier && products.filter(p => !p.SupplierId && p.name.toLowerCase().includes(productSearch.toLowerCase())).length > 0 && (
+                                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '0.6rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                <p style={{ fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Otros / Sin Proveedor</p>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.6rem' }}>
+                                                    {products
+                                                        .filter(p => !p.SupplierId && p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                                                        .map(p => (
+                                                            <div
+                                                                key={p.id}
+                                                                onClick={() => toggleProduct(p.id)}
+                                                                style={{
+                                                                    padding: '0.8rem',
+                                                                    borderRadius: '0.5rem',
+                                                                    fontSize: '0.85rem',
+                                                                    cursor: 'pointer',
+                                                                    border: '1px solid',
+                                                                    borderColor: formData.productIds.includes(p.id) ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                                                                    background: formData.productIds.includes(p.id) ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255,255,255,0.03)',
+                                                                    transition: 'all 0.2s',
+                                                                    display: 'flex',
+                                                                    flexDirection: 'column',
+                                                                    gap: '0.2rem'
+                                                                }}
+                                                            >
+                                                                <span>{p.name}</span>
+                                                                <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>
+                                                                    ₡{new Intl.NumberFormat('es-CR').format(p.price)}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {products.length === 0 && (
+                                        <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-secondary)', padding: '2rem' }}>
+                                            No hay productos registrados para asociar.
+                                        </p>
+                                    )}
                                 </div>
-                            </div>
+                            )}
 
                             <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem', justifyContent: 'center' }}>
                                 <Save size={20} /> {editingEvent ? 'Actualizar Evento' : 'Crear Evento'}
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+            {isDaysModalOpen && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex',
+                    alignItems: 'flex-start', justifyContent: 'center', zIndex: 2000,
+                    padding: '2rem 1rem', overflowY: 'auto'
+                }}>
+                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '1000px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
+                            <div>
+                                <h2 style={{ marginBottom: '0.2rem' }}>Días de Venta: {currentEvent?.name}</h2>
+                                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Configura los productos disponibles para cada día del evento</p>
+                            </div>
+                            <button onClick={() => setIsDaysModalOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>
+                                <X size={28} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1.5rem' }}>
+                            {selectedEventDays.map(day => (
+                                <div key={day.id} className="glass-card" style={{ padding: '1.2rem', background: 'rgba(255,255,255,0.02)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                        <h4 style={{ margin: 0, color: 'var(--primary)' }}>
+                                            {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                        </h4>
+                                        <button
+                                            onClick={() => handleOpenDayEdit(day)}
+                                            style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer' }}
+                                        >
+                                            <Edit2 size={16} />
+                                        </button>
+                                    </div>
+                                    <div style={{ fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                        <p style={{ marginBottom: '0.2rem', fontWeight: 'bold', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.3rem' }}>
+                                            Productos ({day.Products?.length || 0}):
+                                        </p>
+                                        <div style={{ paddingRight: '0.5rem' }}>
+                                            {suppliers.map(s => {
+                                                const supplierDayProducts = day.Products?.filter(p => p.SupplierId === s.id);
+                                                if (!supplierDayProducts || supplierDayProducts.length === 0) return null;
+                                                return (
+                                                    <div key={s.id} style={{ marginBottom: '0.6rem' }}>
+                                                        <p style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 'bold', marginBottom: '0.2rem' }}>{s.name}</p>
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                                                            {supplierDayProducts.map(p => (
+                                                                <span key={p.id} style={{ background: 'rgba(99, 102, 241, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '0.8rem', fontSize: '0.65rem', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                                                                    {p.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                            {day.Products?.filter(p => !p.SupplierId).length > 0 && (
+                                                <div style={{ marginBottom: '0.6rem' }}>
+                                                    <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 'bold', marginBottom: '0.2rem' }}>Otros</p>
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                                                        {day.Products.filter(p => !p.SupplierId).map(p => (
+                                                            <span key={p.id} style={{ background: 'rgba(255,255,255,0.05)', padding: '0.1rem 0.4rem', borderRadius: '0.8rem', fontSize: '0.65rem' }}>
+                                                                {p.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {day.Products?.length === 0 && (
+                                                <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.75rem' }}>Sin productos asignados</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isDayEditingModalOpen && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex',
+                    alignItems: 'flex-start', justifyContent: 'center', zIndex: 2100,
+                    padding: '2rem 1rem', overflowY: 'auto'
+                }}>
+                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '800px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
+                            <div>
+                                <h3 style={{ margin: 0 }}>Gestionar Productos - {new Date(editingDay?.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</h3>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Selecciona los productos de este día</p>
+                            </div>
+                            <button onClick={() => setIsDayEditingModalOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="form-group" style={{ background: 'rgba(0,0,0,0.2)', padding: '1.5rem', borderRadius: '0.8rem', border: '1px solid var(--glass-border)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <label style={{ margin: 0, fontWeight: 'bold' }}>Productos ({dayFormData.productIds.length})</label>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    {/* Solo mostramos productos que están asociados al EVENTO general para este día? 
+                                        O mostramos todos los productos del sistema? 
+                                        Normalmente se restringe a los del evento, pero permitamos todos por flexibilidad de momento */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setDayFormData({ ...dayFormData, productIds: products.map(p => p.id) })}
+                                        style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.7rem', cursor: 'pointer' }}
+                                    >
+                                        Todos
+                                    </button>
+                                    <span style={{ color: 'var(--glass-border)' }}>|</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setDayFormData({ ...dayFormData, productIds: [] })}
+                                        style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.7rem', cursor: 'pointer' }}
+                                    >
+                                        Limpiar
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                                <div style={{ position: 'relative', flex: 1 }}>
+                                    <Search size={16} style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                                    <input
+                                        type="text"
+                                        placeholder="Filtrar..."
+                                        style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.4rem', borderRadius: '2rem', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: '0.8rem' }}
+                                        value={productSearch}
+                                        onChange={(e) => setProductSearch(e.target.value)}
+                                    />
+                                </div>
+                                <select
+                                    style={{ padding: '0.4rem 0.8rem', borderRadius: '2rem', border: '1px solid var(--glass-border)', background: 'rgba(30,41,59,1)', color: 'white', fontSize: '0.8rem' }}
+                                    value={filterSupplier}
+                                    onChange={(e) => setFilterSupplier(e.target.value)}
+                                >
+                                    <option value="">Proveedores</option>
+                                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                {suppliers
+                                    .filter(s => !filterSupplier || s.id.toString() === filterSupplier)
+                                    .map(s => {
+                                        const supplierProducts = products.filter(p => p.SupplierId === s.id && p.name.toLowerCase().includes(productSearch.toLowerCase()));
+                                        if (supplierProducts.length === 0) return null;
+                                        const allSelected = supplierProducts.every(p => dayFormData.productIds.includes(p.id));
+                                        return (
+                                            <div key={s.id}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.75rem' }}>
+                                                    <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{s.name}</span>
+                                                    <button onClick={() => toggleSupplierDayProducts(s.id, !allSelected)} style={{ background: 'none', border: 'none', color: allSelected ? '#ef4444' : 'var(--primary)', cursor: 'pointer' }}>
+                                                        {allSelected ? 'Quitar todos' : 'Poner todos'}
+                                                    </button>
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.4rem' }}>
+                                                    {supplierProducts.map(p => (
+                                                        <div
+                                                            key={p.id}
+                                                            onClick={() => toggleDayProduct(p.id)}
+                                                            style={{
+                                                                padding: '0.5rem', borderRadius: '0.4rem', fontSize: '0.75rem', cursor: 'pointer', border: '1px solid',
+                                                                borderColor: dayFormData.productIds.includes(p.id) ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                                                                background: dayFormData.productIds.includes(p.id) ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                                                                color: dayFormData.productIds.includes(p.id) ? 'white' : 'var(--text-secondary)'
+                                                            }}
+                                                        >
+                                                            {p.name}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                {!filterSupplier && products.filter(p => !p.SupplierId && p.name.toLowerCase().includes(productSearch.toLowerCase())).length > 0 && (
+                                    <div>
+                                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Sin Proveedor</p>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.4rem' }}>
+                                            {products.filter(p => !p.SupplierId && p.name.toLowerCase().includes(productSearch.toLowerCase())).map(p => (
+                                                <div key={p.id} onClick={() => toggleDayProduct(p.id)} style={{ padding: '0.5rem', borderRadius: '0.4rem', fontSize: '0.75rem', cursor: 'pointer', border: '1px solid', borderColor: dayFormData.productIds.includes(p.id) ? 'var(--primary)' : 'rgba(255,255,255,0.05)', background: dayFormData.productIds.includes(p.id) ? 'rgba(99, 102, 241, 0.1)' : 'transparent' }}>{p.name}</div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <button
+                            className="btn btn-primary"
+                            style={{ width: '100%', marginTop: '1.5rem', justifyContent: 'center' }}
+                            onClick={handleSaveDayProducts}
+                        >
+                            <Save size={18} /> Guardar Cambios del Día
+                        </button>
                     </div>
                 </div>
             )}

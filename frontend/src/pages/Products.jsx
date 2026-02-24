@@ -5,7 +5,7 @@ import { Plus, Loader2, Edit2, Trash2, X, Save, Search, ChevronDown, FileUp, Inf
 import { NumericFormat } from 'react-number-format';
 import Papa from 'papaparse';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000/api`;
 
 const Products = () => {
     const [products, setProducts] = useState([]);
@@ -114,7 +114,78 @@ const Products = () => {
                     </button>
                 </div>
             </div>
-        ), { duration: 5000, position: 'top-center' });
+        ), { duration: 5000, position: 'bottom-center' });
+    };
+
+    // Function to delete all products or filtered by supplier
+    function handleDeleteAll() {
+        const selectedSupplier = suppliers.find(s => s.id.toString() === filterSupplier);
+
+        toast((t) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: '300px' }}>
+                <p style={{ margin: 0, fontWeight: 'bold', color: '#ef4444', fontSize: '1.1rem' }}>
+                    {filterSupplier ? `¿BORRAR PRODUCTOS DE ${selectedSupplier?.name}?` : '¿VACIAR TODO EL CATÁLOGO?'}
+                </p>
+                <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.9 }}>
+                    {filterSupplier
+                        ? `Se eliminarán todos los productos asociados a ${selectedSupplier?.name}.`
+                        : 'Esta acción eliminará absolutamente TODOS los productos del sistema.'
+                    }
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <button
+                        onClick={async () => {
+                            toast.dismiss(t.id);
+                            try {
+                                setLoading(true);
+                                const url = filterSupplier
+                                    ? `${API_URL}/products/all?supplierId=${filterSupplier}`
+                                    : `${API_URL}/products/all`;
+                                await axios.delete(url);
+                                await fetchData();
+                                toast.success(filterSupplier ? `Productos de ${selectedSupplier?.name} eliminados` : 'Catálogo vaciado');
+                            } catch (err) {
+                                toast.error('Error al eliminar productos');
+                            } finally {
+                                setLoading(false);
+                            }
+                        }}
+                        style={{ background: '#ef4444', border: 'none', color: 'white', padding: '0.6rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 'bold' }}
+                    >
+                        {filterSupplier ? `SÍ, BORRAR SOLO DE ${selectedSupplier?.name}` : 'SÍ, BORRAR TODO EL CATÁLOGO'}
+                    </button>
+
+                    {filterSupplier && (
+                        <button
+                            onClick={async () => {
+                                toast.dismiss(t.id);
+                                try {
+                                    setLoading(true);
+                                    await axios.delete(`${API_URL}/products/all`);
+                                    await fetchData();
+                                    toast.success('Todo el catálogo ha sido vaciado');
+                                } catch (err) {
+                                    toast.error('Error al vaciar el catálogo');
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }}
+                            style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#ef4444', padding: '0.6rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                            BORRAR TODO (IGNORAR FILTRO)
+                        </button>
+                    )}
+
+                    <button
+                        onClick={() => toast.dismiss(t.id)}
+                        style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '0.6rem', borderRadius: '0.5rem', cursor: 'pointer' }}
+                    >
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        ), { duration: 15000, position: 'bottom-center' });
     };
 
     const handleImport = (e) => {
@@ -229,6 +300,16 @@ const Products = () => {
                             gap: '0.5rem'
                         }} onClick={() => fileInputRef.current.click()}>
                             <FileUp size={20} /> Importar CSV
+                        </button>
+                        <button className="btn" style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            color: '#ef4444',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                        }} onClick={() => handleDeleteAll()}>
+                            <Trash2 size={20} /> Eliminar Todo
                         </button>
                         <button className="btn btn-primary" onClick={() => handleOpenModal()}>
                             <Plus size={20} /> Nuevo Producto
