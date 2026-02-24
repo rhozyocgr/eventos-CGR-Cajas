@@ -3,6 +3,8 @@ import cors from 'cors';
 import { sequelize, Supplier, Product, SalesDay, PaymentType } from './models/index.js';
 
 import supplierRoutes from './routes/supplierRoutes.js';
+import productRoutes from './routes/productRoutes.js';
+import eventRoutes from './routes/eventRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import { authenticate } from './middleware/authMiddleware.js';
 
@@ -15,6 +17,8 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/suppliers', supplierRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/events', eventRoutes);
 
 // Basic test route
 app.get('/api/health', (req, res) => {

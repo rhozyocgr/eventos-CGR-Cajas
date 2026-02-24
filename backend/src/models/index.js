@@ -10,11 +10,16 @@ const User = sequelize.define('User', {
 const Supplier = sequelize.define('Supplier', {
     name: { type: DataTypes.STRING, allowNull: false },
     contact: { type: DataTypes.STRING },
-    phone: { type: DataTypes.STRING }
+    phone: { type: DataTypes.STRING },
+    email: { type: DataTypes.STRING },
+    hasDataphone: { type: DataTypes.BOOLEAN, defaultValue: false },
+    dataphoneCommission: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 },
+    commission: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 }
 });
 
 const Product = sequelize.define('Product', {
     name: { type: DataTypes.STRING, allowNull: false },
+    description: { type: DataTypes.TEXT },
     price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     stock: { type: DataTypes.INTEGER, defaultValue: 0 }
 });
@@ -34,6 +39,14 @@ const Sale = sequelize.define('Sale', {
     timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 });
 
+const Event = sequelize.define('Event', {
+    name: { type: DataTypes.STRING, allowNull: false },
+    description: { type: DataTypes.TEXT },
+    startDate: { type: DataTypes.DATE, allowNull: false },
+    endDate: { type: DataTypes.DATE, allowNull: false },
+    logo: { type: DataTypes.TEXT }
+});
+
 // Associations
 Supplier.hasMany(Product);
 Product.belongsTo(Supplier);
@@ -47,4 +60,7 @@ Sale.belongsTo(Product);
 PaymentType.hasMany(Sale);
 Sale.belongsTo(PaymentType);
 
-export { sequelize, User, Supplier, Product, SalesDay, PaymentType, Sale };
+Event.belongsToMany(Product, { through: 'EventProducts' });
+Product.belongsToMany(Event, { through: 'EventProducts' });
+
+export { sequelize, User, Supplier, Product, SalesDay, PaymentType, Sale, Event };

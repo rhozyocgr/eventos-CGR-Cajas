@@ -17,3 +17,24 @@ export const createSupplier = async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 };
+
+export const updateSupplier = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await Supplier.update(req.body, { where: { id } });
+        const updatedSupplier = await Supplier.findByPk(id);
+        res.json(updatedSupplier);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+export const deleteSupplier = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await Supplier.destroy({ where: { id } });
+        res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

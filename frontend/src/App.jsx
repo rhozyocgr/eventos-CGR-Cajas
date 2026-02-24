@@ -2,8 +2,11 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react
 import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart } from 'lucide-react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { Toaster } from 'react-hot-toast';
 import Login from './pages/Login';
 import Suppliers from './pages/Suppliers';
+import Products from './pages/Products';
+import Events from './pages/Events';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 
@@ -40,8 +43,6 @@ const Dashboard = () => {
     );
 };
 
-const Products = () => <div className="container"><h1>Productos</h1><p>Gestión de inventario próximamente...</p></div>;
-const SalesDays = () => <div className="container"><h1>Días de Venta</h1><p>Calendario de eventos próximamente...</p></div>;
 const Payments = () => <div className="container"><h1>Tipos de Pago</h1><p>Configuración de pagos próximamente...</p></div>;
 const NewSale = () => <div className="container"><h1>Nueva Venta</h1><p>Terminal de punto de venta próximamente...</p></div>;
 
@@ -63,10 +64,10 @@ const MainLayout = ({ children }) => {
             <nav className="mobile-nav">
                 <NavItem to="/" icon={Home} label="Inicio" />
                 <NavItem to="/new-sale" icon={ShoppingCart} label="Vender" />
-                <NavItem to="/products" icon={Package} label="Prods" />
-                <NavItem to="/suppliers" icon={Truck} label="Prov" />
-                <NavItem to="/sales-days" icon={Calendar} label="Días" />
-                <NavItem to="/payments" icon={CreditCard} label="Pago" />
+                <NavItem to="/products" icon={Package} label="Productos" />
+                <NavItem to="/suppliers" icon={Truck} label="Proveedores" />
+                <NavItem to="/events" icon={Calendar} label="Eventos" />
+                <NavItem to="/payments" icon={CreditCard} label="Cajas" />
             </nav>
         </div>
     );
@@ -76,13 +77,24 @@ function App() {
     return (
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
             <AuthProvider>
+                <Toaster
+                    position="top-right"
+                    toastOptions={{
+                        style: {
+                            background: '#1e293b',
+                            color: '#fff',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            backdropFilter: 'blur(10px)'
+                        }
+                    }}
+                />
                 <Router>
                     <MainLayout>
                         <Routes>
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
                             <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
-                            <Route path="/sales-days" element={<ProtectedRoute><SalesDays /></ProtectedRoute>} />
+                            <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
                             <Route path="/payments" element={<ProtectedRoute adminOnly={true}><Payments /></ProtectedRoute>} />
                             <Route path="/new-sale" element={<ProtectedRoute><NewSale /></ProtectedRoute>} />
                             <Route path="/login" element={<Login />} />
