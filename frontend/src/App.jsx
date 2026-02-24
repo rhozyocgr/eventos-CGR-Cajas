@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart } from 'lucide-react';
+import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart, ChevronLeft } from 'lucide-react';
+import { useState } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
@@ -58,10 +59,21 @@ const NavItem = ({ to, icon: Icon, label }) => {
 };
 
 const MainLayout = ({ children }) => {
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
     return (
-        <div style={{ minHeight: '100vh', paddingBottom: '5rem' }}>
-            {children}
-            <nav className="mobile-nav">
+        <div style={{ minHeight: '100vh' }}>
+            <main className={`main-content ${isCollapsed ? 'full-width' : ''}`}>
+                {children}
+            </main>
+            <nav className={`mobile-nav ${isCollapsed ? 'collapsed' : ''}`}>
+                <button
+                    className="collapse-btn"
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    title={isCollapsed ? "Expandir menú" : "Contraer menú"}
+                >
+                    <ChevronLeft size={18} />
+                </button>
                 <NavItem to="/" icon={Home} label="Inicio" />
                 <NavItem to="/new-sale" icon={ShoppingCart} label="Vender" />
                 <NavItem to="/products" icon={Package} label="Productos" />

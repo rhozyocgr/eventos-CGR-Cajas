@@ -7,6 +7,9 @@
   --text-secondary: #94a3b8;
   --glass-border: rgba(255, 255, 255, 0.1);
   --accent: #10b981;
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 80px;
+  --transition-speed: 0.3s;
 }
 
 * {
@@ -18,7 +21,7 @@
 
 body {
   background-color: var(--bg-dark);
-  background-image: 
+  background-image:
     radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
     radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
   color: var(--text-primary);
@@ -63,6 +66,12 @@ body {
   padding: 1rem;
 }
 
+.main-content {
+  min-height: 100vh;
+  transition: padding-left var(--transition-speed);
+  padding-bottom: 5rem;
+}
+
 .mobile-nav {
   position: fixed;
   bottom: 0;
@@ -75,6 +84,11 @@ body {
   padding: 1rem;
   border-top: 1px solid var(--glass-border);
   z-index: 1000;
+  transition: all var(--transition-speed);
+}
+
+.collapse-btn {
+  display: none;
 }
 
 .nav-item {
@@ -95,20 +109,82 @@ body {
     top: 0;
     bottom: auto;
     flex-direction: column;
-    width: 240px;
+    width: var(--sidebar-width);
     height: 100vh;
     justify-content: flex-start;
     gap: 2rem;
     padding: 2rem 1rem;
   }
-  
-  .container {
-    padding-left: 260px;
+
+  .mobile-nav.collapsed {
+    width: var(--sidebar-collapsed-width);
+    padding: 2rem 0.5rem;
   }
-  
+
+  .mobile-nav.collapsed .nav-item span {
+    display: none;
+  }
+
+  .mobile-nav.collapsed .nav-item {
+    justify-content: center;
+    padding: 0.75rem 0;
+  }
+
+  .mobile-nav.collapsed .nav-logo span {
+    display: none;
+  }
+
+  .main-content {
+    padding-left: var(--sidebar-width);
+    padding-bottom: 0;
+  }
+
+  .main-content.full-width {
+    padding-left: var(--sidebar-collapsed-width);
+  }
+
+  .container {
+    padding-left: 1rem;
+    /* Reset container padding in desktop to normal */
+  }
+
   .nav-item {
     flex-direction: row;
     font-size: 1rem;
     gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+  }
+
+  .nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .collapse-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    margin-bottom: 2rem;
+    transition: all 0.2s;
+    width: 32px;
+    height: 32px;
+    align-self: flex-end;
+  }
+
+  .mobile-nav.collapsed .collapse-btn {
+    align-self: center;
+    transform: rotate(180deg);
+  }
+
+  .collapse-btn:hover {
+    background: var(--primary);
+    color: white;
   }
 }
