@@ -14,20 +14,22 @@ export const googleLogin = async (req, res) => {
         });
 
         const { email, name, picture } = ticket.getPayload();
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const isActuallyAdmin = adminEmail && email === adminEmail;
 
         // Find or create user
         let user = await User.findOne({ where: { email } });
 
         if (!user) {
-            // First user is admin (optional logic, or just default to user)
-            const userCount = await User.count();
-            const role = userCount === 0 ? 'admin' : 'user';
-
             user = await User.create({
                 email,
                 name,
-                role
+                role: isActuallyAdmin ? 'admin' : 'user'
             });
+        } else if (isActuallyAdmin && user.role !== 'admin') {
+            // Auto-promote if email matches admin env
+            user.role = 'admin';
+            await user.save();
         }
 
         const sessionToken = jwt.sign(
