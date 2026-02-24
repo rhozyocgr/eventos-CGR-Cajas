@@ -1,5 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart, ChevronLeft } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart, ChevronLeft, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -8,10 +8,24 @@ import Login from './pages/Login';
 import Suppliers from './pages/Suppliers';
 import Products from './pages/Products';
 import Events from './pages/Events';
+import NewSale from './pages/NewSale';
+import Cashier from './pages/Cashier';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
+    const { user, loading, isAdmin } = useAuth();
+
+    if (loading) return <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', color: 'white' }}>Cargando...</div>;
+
+    if (!user) {
+        return <Navigate to="/login" />;
+    }
+
+    if (adminOnly && !isAdmin) {
+        return <Navigate to="/" />;
+    }
+
     return children;
 };
 
@@ -22,14 +36,12 @@ const Dashboard = () => {
         <div className="container">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h1>Dashboard de Eventos</h1>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <span style={{ fontSize: '0.875rem' }}>Desarrollador (Admin)</span>
-                </div>
+
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
                 <div className="glass-card" style={{ padding: '1.5rem' }}>
                     <h3>Ventas Hoy</h3>
-                    <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)', marginTop: '1rem' }}>$0.00</p>
+                    <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)', marginTop: '1rem' }}>₡0</p>
                 </div>
                 <div className="glass-card" style={{ padding: '1.5rem' }}>
                     <h3>Productos</h3>
@@ -44,9 +56,6 @@ const Dashboard = () => {
     );
 };
 
-const Payments = () => <div className="container"><h1>Tipos de Pago</h1><p>Configuración de pagos próximamente...</p></div>;
-const NewSale = () => <div className="container"><h1>Nueva Venta</h1><p>Terminal de punto de venta próximamente...</p></div>;
-
 const NavItem = ({ to, icon: Icon, label }) => {
     const location = useLocation();
     const isActive = location.pathname === to;
@@ -60,6 +69,13 @@ const NavItem = ({ to, icon: Icon, label }) => {
 
 const MainLayout = ({ children }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const { user, logout } = useAuth();
+    const location = useLocation();
+    const isLoginPage = location.pathname === '/login';
+
+    if (!user || isLoginPage) {
+        return <main style={{ minHeight: '100vh' }}>{children}</main>;
+    }
 
     return (
         <div style={{ minHeight: '100vh' }}>
@@ -67,19 +83,85 @@ const MainLayout = ({ children }) => {
                 {children}
             </main>
             <nav className={`mobile-nav ${isCollapsed ? 'collapsed' : ''}`}>
-                <button
-                    className="collapse-btn"
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                    title={isCollapsed ? "Expandir menú" : "Contraer menú"}
-                >
-                    <ChevronLeft size={18} />
-                </button>
-                <NavItem to="/" icon={Home} label="Inicio" />
-                <NavItem to="/new-sale" icon={ShoppingCart} label="Vender" />
-                <NavItem to="/products" icon={Package} label="Productos" />
-                <NavItem to="/suppliers" icon={Truck} label="Proveedores" />
-                <NavItem to="/events" icon={Calendar} label="Eventos" />
-                <NavItem to="/payments" icon={CreditCard} label="Cajas" />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                    <button
+                        className="collapse-btn"
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        title={isCollapsed ? "Expandir menú" : "Contraer menú"}
+                    >
+                        <ChevronLeft size={18} />
+                    </button>
+                    <NavItem to="/" icon={Home} label="Inicio" />
+                    <NavItem to="/new-sale" icon={ShoppingCart} label="Vender" />
+                    <NavItem to="/products" icon={Package} label="Productos" />
+                    <NavItem to="/suppliers" icon={Truck} label="Proveedores" />
+                    <NavItem to="/events" icon={Calendar} label="Eventos" />
+                    <NavItem to="/payments" icon={CreditCard} label="Cajas" />
+                </div>
+
+                <div style={{
+                    marginTop: 'auto',
+                    paddingTop: '1rem',
+                    borderTop: '1px solid var(--glass-border)',
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: isCollapsed ? 'column' : 'row',
+                    alignItems: 'center',
+                    gap: isCollapsed ? '1rem' : '0.75rem'
+                }}>
+                    <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        border: '2px solid var(--primary)',
+                        flexShrink: 0
+                    }}>
+                        <img
+                            src={user?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=6366f1&color=fff`}
+                            alt="Profile"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                    </div>
+                    {!isCollapsed && (
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{
+                                margin: 0,
+                                fontSize: '0.85rem',
+                                fontWeight: 'bold',
+                                color: 'white',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                            }} title={user?.name}>
+                                {user?.name}
+                            </p>
+                            <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                                {user?.role === 'admin' ? 'Administrador' : 'Usuario'}
+                            </p>
+                        </div>
+                    )}
+                    <button
+                        onClick={logout}
+                        title="Cerrar sesión"
+                        style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: 'none',
+                            color: '#ef4444',
+                            padding: '0.5rem',
+                            borderRadius: '0.5rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                    >
+                        <LogOut size={18} />
+                    </button>
+                </div>
             </nav>
         </div>
     );
@@ -90,24 +172,29 @@ function App() {
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
             <AuthProvider>
                 <Toaster
-                    position="top-right"
+                    position="bottom-center"
                     toastOptions={{
                         style: {
                             background: '#1e293b',
                             color: '#fff',
                             border: '1px solid rgba(255,255,255,0.1)',
-                            backdropFilter: 'blur(10px)'
+                            backdropFilter: 'blur(10px)',
+                            padding: '1.2rem 2rem',
+                            fontSize: '1.1rem',
+                            minWidth: '400px',
+                            borderRadius: '1rem',
+                            boxShadow: '0 15px 30px rgba(0,0,0,0.4)'
                         }
                     }}
                 />
                 <Router>
                     <MainLayout>
                         <Routes>
-                            <Route path="/" element={<Dashboard />} />
+                            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                             <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
                             <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
                             <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
-                            <Route path="/payments" element={<ProtectedRoute adminOnly={true}><Payments /></ProtectedRoute>} />
+                            <Route path="/payments" element={<ProtectedRoute adminOnly={true}><Cashier /></ProtectedRoute>} />
                             <Route path="/new-sale" element={<ProtectedRoute><NewSale /></ProtectedRoute>} />
                             <Route path="/login" element={<Login />} />
                         </Routes>

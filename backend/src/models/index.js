@@ -33,10 +33,15 @@ const PaymentType = sequelize.define('PaymentType', {
     name: { type: DataTypes.STRING, allowNull: false }
 });
 
+const Transaction = sequelize.define('Transaction', {
+    total: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+    observation: { type: DataTypes.TEXT, allowNull: true },
+    timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+});
+
 const Sale = sequelize.define('Sale', {
     quantity: { type: DataTypes.INTEGER, allowNull: false },
-    total: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
-    timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+    total: { type: DataTypes.DECIMAL(10, 2), allowNull: false }
 });
 
 const Event = sequelize.define('Event', {
@@ -44,24 +49,43 @@ const Event = sequelize.define('Event', {
     description: { type: DataTypes.TEXT },
     startDate: { type: DataTypes.DATE, allowNull: false },
     endDate: { type: DataTypes.DATE, allowNull: false },
-    logo: { type: DataTypes.TEXT }
+    logo: { type: DataTypes.TEXT('long') }
+});
+
+const CashClosing = sequelize.define('CashClosing', {
+    totalEfectivo: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    totalTarjeta: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    totalSinpe: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    totalGeneral: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    totalComisiones: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    details: { type: DataTypes.JSON },
+    timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 });
 
 // Associations
 Supplier.hasMany(Product);
 Product.belongsTo(Supplier);
 
-SalesDay.hasMany(Sale);
-Sale.belongsTo(SalesDay);
+SalesDay.hasMany(Transaction);
+Transaction.belongsTo(SalesDay);
+
+Transaction.hasMany(Sale);
+Sale.belongsTo(Transaction);
 
 Product.hasMany(Sale);
 Sale.belongsTo(Product);
 
-PaymentType.hasMany(Sale);
-Sale.belongsTo(PaymentType);
+PaymentType.hasMany(Transaction);
+Transaction.belongsTo(PaymentType);
 
 Event.hasMany(SalesDay);
 SalesDay.belongsTo(Event);
+
+User.hasMany(CashClosing);
+CashClosing.belongsTo(User);
+
+SalesDay.hasMany(CashClosing);
+CashClosing.belongsTo(SalesDay);
 
 Event.belongsToMany(Product, { through: 'EventProducts' });
 Product.belongsToMany(Event, { through: 'EventProducts' });
@@ -69,4 +93,4 @@ Product.belongsToMany(Event, { through: 'EventProducts' });
 SalesDay.belongsToMany(Product, { through: 'DayProducts' });
 Product.belongsToMany(SalesDay, { through: 'DayProducts' });
 
-export { sequelize, User, Supplier, Product, SalesDay, PaymentType, Sale, Event };
+export { sequelize, User, Supplier, Product, SalesDay, PaymentType, Transaction, Sale, Event, CashClosing };

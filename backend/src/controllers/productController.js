@@ -1,4 +1,4 @@
-import { Product, Supplier } from '../models/index.js';
+import { Product, Supplier, Sale } from '../models/index.js';
 
 export const getProducts = async (req, res) => {
     try {
@@ -51,6 +51,22 @@ export const deleteProduct = async (req, res) => {
     try {
         const { id } = req.params;
         await Product.destroy({ where: { id } });
+        res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const deleteAllProducts = async (req, res) => {
+    try {
+        const { supplierId } = req.query;
+        const where = {};
+
+        if (supplierId) {
+            where.SupplierId = supplierId;
+        }
+
+        await Product.destroy({ where, truncate: false });
         res.status(204).send();
     } catch (error) {
         res.status(500).json({ error: error.message });
