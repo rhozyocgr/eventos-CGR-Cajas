@@ -29,7 +29,7 @@ const Dashboard = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
                 <div className="glass-card" style={{ padding: '1.5rem' }}>
                     <h3>Ventas Hoy</h3>
-                    <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)', marginTop: '1rem' }}>$0.00</p>
+                    <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)', marginTop: '1rem' }}>₡0.00</p>
                 </div>
                 <div className="glass-card" style={{ padding: '1.5rem' }}>
                     <h3>Productos</h3>
