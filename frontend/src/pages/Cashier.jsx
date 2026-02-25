@@ -15,7 +15,14 @@ import {
     ArrowLeft,
     CheckCircle2,
     DollarSign,
-    Percent
+    Percent,
+    X,
+    CreditCard,
+    Smartphone,
+    Banknote,
+    Receipt,
+    Trash2,
+    CheckCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -34,15 +41,35 @@ const Cashier = () => {
     const [viewingClosing, setViewingClosing] = useState(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [showPendingModal, setShowPendingModal] = useState(false);
+    const [pendingSales, setPendingSales] = useState([]);
+    const [paymentTypes, setPaymentTypes] = useState([]);
+    const [processingPayment, setProcessingPayment] = useState(false);
+    const [deletingTransaction, setDeletingTransaction] = useState(null);
+    const [deleteReason, setDeleteReason] = useState('');
+    const [selectedPendingSale, setSelectedPendingSale] = useState(null);
+    const [showTooltip, setShowTooltip] = useState(false);
+
+    const deleteReasons = ['Error de digitación', 'Cliente se arrepintió', 'Cambio de método de pago', 'Duplicado', 'Otro'];
 
     useEffect(() => {
         fetchEvents();
+        fetchPaymentTypes();
         const savedEventId = localStorage.getItem('selectedEventId');
         const savedDayId = localStorage.getItem('selectedDayId');
         if (savedEventId) {
             loadInitialSelection(savedEventId, savedDayId);
         }
     }, []);
+
+    const fetchPaymentTypes = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/sales/payment-types`);
+            setPaymentTypes(res.data);
+        } catch (err) {
+            console.error('Error fetching payment types:', err);
+        }
+    };
 
     const fetchEvents = async () => {
         try {
@@ -109,8 +136,159 @@ const Cashier = () => {
         fetchSummary(day.id);
     };
 
+    const handleViewPending = async () => {
+        if (!selectedDay) return;
+        try {
+            setLoading(true);
+            const res = await axios.get(`${API_URL}/sales/pending?salesDayId=${selectedDay.id}`);
+            setPendingSales(res.data);
+            setShowPendingModal(true);
+        } catch (err) {
+            toast.error('Error al cargar ventas pendientes');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdatePayment = async (transactionId, paymentTypeId) => {
+        try {
+            setProcessingPayment(true);
+            await axios.put(`${API_URL}/sales/${transactionId}/payment-type`, {
+                paymentTypeId
+            });
+            toast.success('Pago actualizado correctamente');
+            // Refrescar lista de pendientes
+            const res = await axios.get(`${API_URL}/sales/pending?salesDayId=${selectedDay.id}`);
+            setPendingSales(res.data);
+            setSelectedPendingSale(null);
+            // Refrescar resumen de la página principal
+            fetchSummary(selectedDay.id);
+        } catch (err) {
+            toast.error('Error al actualizar el pago');
+        } finally {
+            setProcessingPayment(false);
+        }
+    };
+
+    const handleDeletePending = async () => {
+        if (!deletingTransaction || !deleteReason) return;
+        try {
+            setProcessingPayment(true);
+            await axios.delete(`${API_URL}/sales/${deletingTransaction.id}`, {
+                data: { reason: deleteReason }
+            });
+            toast.success('Venta eliminada con éxito');
+            setDeletingTransaction(null);
+            setDeleteReason('');
+            const res = await axios.get(`${API_URL}/sales/pending?salesDayId=${selectedDay.id}`);
+            setPendingSales(res.data);
+            fetchSummary(selectedDay.id);
+        } catch (err) {
+            toast.error('Error al eliminar la venta');
+        } finally {
+            setProcessingPayment(false);
+        }
+    };
+
+    const getPaymentIcon = (name) => {
+        const n = name.toLowerCase();
+        if (n.includes('efectivo')) return <Banknote size={24} />;
+        if (n.includes('tarjeta')) return <CreditCard size={24} />;
+        if (n.includes('sinpe')) return <Smartphone size={24} />;
+        if (n.includes('pendiente')) return <Clock size={24} />;
+        return <CheckCircle size={24} />;
+    };
+
+    const handlePrintReceipt = (transaction) => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            toast.error('Por favor permite las ventanas emergentes para imprimir');
+            return;
+        }
+
+        const totalFormatted = new Intl.NumberFormat('es-CR').format(transaction.total);
+        const dateStr = new Date(transaction.timestamp).toLocaleString();
+
+        let itemsHtml = '';
+        transaction.Sales?.forEach(item => {
+            itemsHtml += `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px dotted #eee; padding-bottom: 3px;">
+                    <div style="flex: 1;">${item.Product?.name}</div>
+                    <div style="width: 40px; text-align: center;">x${item.quantity}</div>
+                    <div style="width: 80px; text-align: right;">₡${new Intl.NumberFormat('es-CR').format(item.total)}</div>
+                </div>
+            `;
+        });
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>Justificante Pedido #${transaction.id}</title>
+                    <style>
+                        body { 
+                            font-family: 'Courier New', Courier, monospace; 
+                            line-height: 1.2; 
+                            width: 300px; 
+                            padding: 10px;
+                            margin: 0;
+                            font-size: 14px;
+                            color: #000;
+                        }
+                        .header { text-align: center; margin-bottom: 15px; }
+                        .divider { border-top: 1px solid #000; margin: 10px 0; }
+                        .total { font-size: 18px; font-weight: bold; text-align: right; margin-top: 15px; }
+                        .footer { text-align: center; margin-top: 20px; font-size: 12px; }
+                        @media print {
+                            @page { margin: 0; }
+                            body { margin: 0.5cm; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h2 style="margin: 0;">CGR - EVENTOS</h2>
+                        <p style="margin: 5px 0;">JUSTIFICANTE DE PEDIDO</p>
+                        <p style="margin: 0; font-size: 12px;">#${transaction.id}</p>
+                    </div>
+                    <div class="divider"></div>
+                    <p style="margin: 5px 0;">Fecha: ${dateStr}</p>
+                    ${transaction.observation ? `<p style="margin: 5px 0;"><strong>Cliente: ${transaction.observation}</strong></p>` : ''}
+                    <div class="divider"></div>
+                    <div style="font-weight: bold; display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="flex: 1;">Prod.</span>
+                        <span style="width: 40px; text-align: center;">Cant.</span>
+                        <span style="width: 80px; text-align: right;">Subt.</span>
+                    </div>
+                    ${itemsHtml}
+                    <div class="total">TOTAL: ₡${totalFormatted}</div>
+                    <div class="divider"></div>
+                    <div class="footer">
+                        <p>Favor de conservar este tiquete.</p>
+                        <p>¡Muchas gracias!</p>
+                    </div>
+                    <script>
+                        window.onload = function() { 
+                            window.print(); 
+                            setTimeout(function() { window.close(); }, 500);
+                        }
+                    </script>
+                </body>
+            </html>
+        `;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
+    };
+
     const handleSaveClosing = async () => {
         if (!summary || !selectedDay) return;
+
+        if (summary.totalPendiente > 0) {
+            toast.error('No se puede realizar el corte: existen ventas pendientes de cobro');
+            handleViewPending(); // Abrir el modal automáticamente para que los resuelva
+            return;
+        }
 
         if (summary.totalGeneral <= 0) {
             toast.error('No hay ventas registradas para realizar el corte');
@@ -203,7 +381,7 @@ const Cashier = () => {
                     <button onClick={() => setSelectedDay(null)} className="btn" style={{ background: 'none', color: 'var(--text-secondary)', marginBottom: '0.5rem', padding: 0, fontSize: '0.8rem' }}>
                         <ArrowLeft size={14} /> Volver a días
                     </button>
-                    <h1 style={{ marginBottom: '0.2rem' }}>Corte de Caja</h1>
+                    <h1 style={{ marginBottom: '0.2rem' }}>Cierre de Caja</h1>
                     <p style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Calendar size={16} /> {new Date(selectedDay.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                         <span style={{ color: 'var(--glass-border)' }}>|</span>
@@ -214,10 +392,90 @@ const Cashier = () => {
 
                     <button
                         className="btn btn-primary"
-                        onClick={handleSaveClosing}
+                        onClick={() => {
+                            if (summary?.totalPendiente > 0) {
+                                toast.error('Resuelva las ventas pendientes antes de cerrar', {
+                                    icon: '⚠️',
+                                    style: {
+                                        border: '1px solid #f59e0b',
+                                        padding: '16px',
+                                        color: '#f59e0b',
+                                        background: 'rgba(245, 158, 11, 0.1)',
+                                        backdropFilter: 'blur(10px)',
+                                        fontWeight: 'bold'
+                                    }
+                                });
+                                handleViewPending();
+                            } else {
+                                handleSaveClosing();
+                            }
+                        }}
                         disabled={saving || !summary}
+                        onMouseEnter={() => setShowTooltip(true)}
+                        onMouseLeave={() => setShowTooltip(false)}
+                        style={{
+                            opacity: (saving || !summary || summary.totalPendiente > 0) ? 0.6 : 1,
+                            position: 'relative',
+                            cursor: (saving || !summary) ? 'wait' : 'pointer'
+                        }}
                     >
                         <Save size={18} /> {saving ? 'Guardando...' : 'Registrar Corte'}
+
+                        {/* CUSTOM TOOLTIP - Alineado a la derecha para que crezca hacia la izquierda */}
+                        {showTooltip && summary?.totalPendiente > 0 && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '100%',
+                                right: '0',
+                                marginTop: '15px',
+                                background: 'rgba(245, 158, 11, 0.15)',
+                                backdropFilter: 'blur(12px)',
+                                border: '1px solid #f59e0b',
+                                color: '#f59e0b',
+                                padding: '12px 18px',
+                                borderRadius: '12px',
+                                fontSize: '0.85rem',
+                                fontWeight: 'bold',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
+                                zIndex: 5000,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                animation: 'fadeInDown 0.2s ease-out'
+                            }}>
+                                <Clock size={16} /> Resolver ventas pendientes antes de cerrar
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: '100%',
+                                    right: '20px',
+                                    width: '0',
+                                    height: '0',
+                                    borderLeft: '8px solid transparent',
+                                    borderRight: '8px solid transparent',
+                                    borderBottom: '8px solid #f59e0b'
+                                }}></div>
+                            </div>
+                        )}
+
+                        {summary?.totalPendiente > 0 && (
+                            <span style={{
+                                position: 'absolute',
+                                top: '-8px',
+                                right: '-8px',
+                                background: '#f59e0b',
+                                color: 'black',
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.7rem',
+                                fontWeight: 'bold',
+                                pointerEvents: 'none'
+                            }}>!</span>
+                        )}
                     </button>
                 </div>
             </div>
@@ -261,6 +519,19 @@ const Cashier = () => {
                                 ₡{new Intl.NumberFormat('es-CR').format(summary.totalComisiones)}
                             </h3>
                         </div>
+                        {summary.totalPendiente > 0 && (
+                            <div className="glass-card hover-glow"
+                                onClick={handleViewPending}
+                                style={{ padding: '1.5rem', background: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.3)', cursor: 'pointer', borderLeft: '4px solid #f59e0b' }}>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#f59e0b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <Clock size={14} /> VENTAS PENDIENTES
+                                </p>
+                                <h3 style={{ margin: '0.5rem 0 0 0', fontSize: '1.5rem', color: '#f59e0b' }}>
+                                    ₡{new Intl.NumberFormat('es-CR').format(summary.totalPendiente)}
+                                </h3>
+                                <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.7rem', color: '#f59e0b', opacity: 0.8 }}>Click para resolver →</p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Breakdown by Supplier */}
@@ -359,11 +630,7 @@ const Cashier = () => {
                                                     </span>
                                                 </p>
                                                 <button
-                                                    onClick={() => {
-                                                        localStorage.setItem('selectedEventId', selectedEvent.id);
-                                                        localStorage.setItem('selectedDayId', selectedDay.id);
-                                                        navigate('/new-sale', { state: { openPending: true } });
-                                                    }}
+                                                    onClick={handleViewPending}
                                                     style={{
                                                         background: 'none',
                                                         border: 'none',
@@ -376,7 +643,7 @@ const Cashier = () => {
                                                         fontWeight: 'bold'
                                                     }}
                                                 >
-                                                    Ir a cobrar pendientes →
+                                                    Ver y cobrar pendientes →
                                                 </button>
                                             </div>
                                         )}
@@ -495,6 +762,234 @@ const Cashier = () => {
                         </div>
 
                         <SummaryView summary={viewingClosing.details} />
+                    </div>
+                </div>
+            )}
+            {/* MODAL DE VENTAS PENDIENTES */}
+            {showPendingModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4000, padding: '1rem' }}>
+                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                <Clock size={24} color="#f59e0b" /> Ventas Pendientes
+                            </h2>
+                            <button onClick={() => setShowPendingModal(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={24} /></button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            {pendingSales.map(transaction => (
+                                <div key={transaction.id} className="glass-card" style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                        <div style={{ display: 'flex', gap: '1rem' }}>
+                                            <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '0.8rem', borderRadius: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <Receipt size={24} color="#f59e0b" />
+                                            </div>
+                                            <div>
+                                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: 'white' }}>Transacción #{transaction.id}</h3>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.3rem' }}>
+                                                    {transaction.observation && (
+                                                        <span style={{ color: '#f59e0b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                            📝 {transaction.observation}
+                                                        </span>
+                                                    )}
+                                                    <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>
+                                                        {new Date(transaction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--accent)', marginBottom: '0.8rem' }}>
+                                                ₡{new Intl.NumberFormat('es-CR').format(transaction.total)}
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.8rem' }}>
+                                                <button
+                                                    onClick={() => handlePrintReceipt(transaction)}
+                                                    style={{
+                                                        padding: '0.6rem',
+                                                        borderRadius: '0.6rem',
+                                                        background: 'rgba(255, 255, 255, 0.05)',
+                                                        color: 'white',
+                                                        border: '1px solid var(--glass-border)',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        title: 'Imprimir Justificante'
+                                                    }}
+                                                >
+                                                    <Printer size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => setDeletingTransaction(transaction)}
+                                                    style={{
+                                                        padding: '0.6rem 0.8rem',
+                                                        borderRadius: '0.6rem',
+                                                        background: 'rgba(239, 68, 68, 0.1)',
+                                                        color: '#ef4444',
+                                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                                        cursor: 'pointer',
+                                                        fontWeight: 'bold',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.4rem',
+                                                        fontSize: '0.85rem'
+                                                    }}
+                                                >
+                                                    <Trash2 size={16} /> Eliminar
+                                                </button>
+                                                <button
+                                                    onClick={() => setSelectedPendingSale(transaction)}
+                                                    style={{
+                                                        flex: 1,
+                                                        padding: '0.6rem 1rem',
+                                                        borderRadius: '0.6rem',
+                                                        background: '#6366f1',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        fontWeight: 'bold',
+                                                        fontSize: '0.9rem',
+                                                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+                                                    }}
+                                                >
+                                                    Cobrar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '0.8rem', padding: '1rem' }}>
+                                        <p style={{ margin: '0 0 0.8rem 0', fontSize: '0.7rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>DETALLE DE PRODUCTOS:</p>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                            {transaction.Sales?.map(sale => (
+                                                <div key={sale.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem' }}>
+                                                    <span style={{ color: 'white' }}>{sale.Product?.name} <span style={{ opacity: 0.5, marginLeft: '0.3rem' }}>x{sale.quantity}</span></span>
+                                                    <span style={{ fontWeight: 'bold', color: 'white' }}>₡{new Intl.NumberFormat('es-CR').format(sale.total)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {pendingSales.length === 0 && (
+                                <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.5 }}>
+                                    <Clock size={48} style={{ marginBottom: '1rem', margin: '0 auto' }} />
+                                    <p>No hay ventas pendientes de pago.</p>
+                                </div>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => setShowPendingModal(false)}
+                            style={{ width: '100%', marginTop: '2rem', padding: '1rem', borderRadius: '0.8rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', cursor: 'pointer' }}
+                        >
+                            Listo
+                        </button>
+
+                        {/* Delete confirmation sub-modal */}
+                        {deletingTransaction && (
+                            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000, padding: '1rem' }}>
+                                <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+                                    <Trash2 size={40} color="#ef4444" style={{ marginBottom: '1rem' }} />
+                                    <h3 style={{ marginBottom: '0.5rem' }}>¿Eliminar Pendiente?</h3>
+                                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+                                        Esta acción no se puede deshacer. Selecciona un motivo:
+                                    </p>
+
+                                    <select
+                                        value={deleteReason}
+                                        onChange={(e) => setDeleteReason(e.target.value)}
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--glass-border)', outline: 'none', marginBottom: '1.5rem', fontSize: '1rem' }}
+                                    >
+                                        <option value="" style={{ background: '#1e293b' }}>-- Seleccionar motivo --</option>
+                                        {deleteReasons.map(r => (
+                                            <option key={r} value={r} style={{ background: '#1e293b' }}>{r}</option>
+                                        ))}
+                                    </select>
+
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        <button
+                                            onClick={() => {
+                                                setDeletingTransaction(null);
+                                                setDeleteReason('');
+                                            }}
+                                            style={{ flex: 1, padding: '0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', cursor: 'pointer' }}
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            disabled={!deleteReason || processingPayment}
+                                            onClick={handleDeletePending}
+                                            style={{ flex: 1, padding: '0.8rem', borderRadius: '0.5rem', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold', opacity: (!deleteReason || processingPayment) ? 0.5 : 1 }}
+                                        >
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Payment Selection Sub-modal */}
+                        {selectedPendingSale && (
+                            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000, padding: '1rem' }}>
+                                <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '500px' }}>
+                                    <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                                        <h2 style={{ marginBottom: '0.5rem' }}>Cobrar Transacción #{selectedPendingSale.id}</h2>
+                                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                            Total a cobrar: <span style={{ color: 'var(--accent)', fontWeight: 'bold', fontSize: '1.2rem' }}>₡{new Intl.NumberFormat('es-CR').format(selectedPendingSale.total)}</span>
+                                        </p>
+                                    </div>
+
+                                    <div style={{ display: 'grid', gap: '1rem' }}>
+                                        {paymentTypes.filter(t => t.name.toLowerCase() !== 'pendiente').map(type => (
+                                            <button
+                                                key={type.id}
+                                                disabled={processingPayment}
+                                                onClick={() => handleUpdatePayment(selectedPendingSale.id, type.id)}
+                                                className="glass-card hover-glow"
+                                                style={{
+                                                    padding: '1.2rem',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '1.5rem',
+                                                    cursor: 'pointer',
+                                                    width: '100%',
+                                                    border: '1px solid var(--glass-border)',
+                                                    background: 'rgba(255,255,255,0.03)',
+                                                    color: 'white',
+                                                    transition: 'all 0.2s',
+                                                    opacity: processingPayment ? 0.5 : 1
+                                                }}
+                                            >
+                                                <div style={{
+                                                    width: '50px',
+                                                    height: '50px',
+                                                    borderRadius: '1rem',
+                                                    background: 'rgba(255,255,255,0.05)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: 'var(--primary)'
+                                                }}>
+                                                    {getPaymentIcon(type.name)}
+                                                </div>
+                                                <div style={{ textAlign: 'left' }}>
+                                                    <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.1rem' }}>{type.name}</p>
+                                                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Confirmar pago en {type.name}</p>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <button
+                                        onClick={() => setSelectedPendingSale(null)}
+                                        style={{ width: '100%', marginTop: '1.5rem', padding: '1rem', borderRadius: '0.8rem', background: 'none', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
