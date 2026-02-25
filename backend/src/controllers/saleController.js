@@ -324,6 +324,81 @@ export const createCashClosing = async (req, res) => {
     }
 };
 
+export const createFinalCashClosing = async (req, res) => {
+    try {
+        const { salesDayId, userId } = req.body;
+
+        if (!salesDayId) {
+            return res.status(400).json({ error: 'salesDayId is required' });
+        }
+
+        // Obtener todos los cortes previos que no sean finales
+        const partialClosings = await CashClosing.findAll({
+            where: {
+                SalesDayId: salesDayId,
+                isFinal: false
+            }
+        });
+
+        if (partialClosings.length === 0) {
+            return res.status(400).json({ error: 'No hay cortes parciales para realizar el corte definitivo' });
+        }
+
+        // Sumarizar totales
+        const finalSummary = {
+            totalEfectivo: 0,
+            totalTarjeta: 0,
+            totalSinpe: 0,
+            totalGeneral: 0,
+            totalComisiones: 0,
+            totalGananciaGrupos: 0,
+            bySupplier: {}
+        };
+
+        partialClosings.forEach(closing => {
+            const details = typeof closing.details === 'string' ? JSON.parse(closing.details) : closing.details;
+
+            finalSummary.totalEfectivo += parseFloat(closing.totalEfectivo);
+            finalSummary.totalTarjeta += parseFloat(closing.totalTarjeta);
+            finalSummary.totalSinpe += parseFloat(closing.totalSinpe);
+            finalSummary.totalGeneral += parseFloat(closing.totalGeneral);
+            finalSummary.totalComisiones += parseFloat(closing.totalComisiones);
+            finalSummary.totalGananciaGrupos += parseFloat(details.totalGananciaGrupos || 0);
+
+            // Consolidar por proveedor
+            if (details.bySupplier) {
+                Object.entries(details.bySupplier).forEach(([suppId, suppData]) => {
+                    if (!finalSummary.bySupplier[suppId]) {
+                        finalSummary.bySupplier[suppId] = { ...suppData };
+                    } else {
+                        finalSummary.bySupplier[suppId].total += parseFloat(suppData.total);
+                        finalSummary.bySupplier[suppId].cardCommission += parseFloat(suppData.cardCommission || 0);
+                        finalSummary.bySupplier[suppId].groupProfit += parseFloat(suppData.groupProfit || 0);
+                        // Los nombres y tipos se mantienen igual
+                    }
+                });
+            }
+        });
+
+        const finalClosing = await CashClosing.create({
+            SalesDayId: salesDayId,
+            UserId: userId || null, // El admin que cierra
+            totalEfectivo: finalSummary.totalEfectivo,
+            totalTarjeta: finalSummary.totalTarjeta,
+            totalSinpe: finalSummary.totalSinpe,
+            totalGeneral: finalSummary.totalGeneral,
+            totalComisiones: finalSummary.totalComisiones,
+            isFinal: true,
+            details: finalSummary
+        });
+
+        res.status(201).json(finalClosing);
+    } catch (error) {
+        console.error('ERROR IN createFinalCashClosing:', error);
+        res.status(400).json({ error: error.message });
+    }
+};
+
 export const deleteTransaction = async (req, res) => {
     try {
         const { id } = req.params;

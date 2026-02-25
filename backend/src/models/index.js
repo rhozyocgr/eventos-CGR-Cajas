@@ -60,6 +60,7 @@ const CashClosing = sequelize.define('CashClosing', {
     totalGeneral: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     totalComisiones: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     details: { type: DataTypes.JSON },
+    isFinal: { type: DataTypes.BOOLEAN, defaultValue: false },
     timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 });
 

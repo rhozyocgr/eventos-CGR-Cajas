@@ -22,7 +22,8 @@ import {
     Banknote,
     Receipt,
     Trash2,
-    CheckCircle
+    CheckCircle,
+    AlertTriangle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -48,7 +49,8 @@ const Cashier = () => {
     const [deletingTransaction, setDeletingTransaction] = useState(null);
     const [deleteReason, setDeleteReason] = useState('');
     const [selectedPendingSale, setSelectedPendingSale] = useState(null);
-    const [showTooltip, setShowTooltip] = useState(false);
+    const [tooltipType, setTooltipType] = useState(null); // 'save' | 'final'
+    const [showFinalConfirmModal, setShowFinalConfirmModal] = useState(false);
 
     const deleteReasons = ['Error de digitación', 'Cliente se arrepintió', 'Cambio de método de pago', 'Duplicado', 'Otro'];
 
@@ -156,7 +158,16 @@ const Cashier = () => {
             await axios.put(`${API_URL}/sales/${transactionId}/payment-type`, {
                 paymentTypeId
             });
-            toast.success('Pago actualizado correctamente');
+            toast.success('Pago actualizado correctamente', {
+                style: {
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid #10b981',
+                    color: '#10b981',
+                    borderRadius: '12px',
+                    fontWeight: 'bold'
+                }
+            });
             // Refrescar lista de pendientes
             const res = await axios.get(`${API_URL}/sales/pending?salesDayId=${selectedDay.id}`);
             setPendingSales(res.data);
@@ -164,7 +175,15 @@ const Cashier = () => {
             // Refrescar resumen de la página principal
             fetchSummary(selectedDay.id);
         } catch (err) {
-            toast.error('Error al actualizar el pago');
+            toast.error('Error al actualizar el pago', {
+                style: {
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid #ef4444',
+                    color: '#ef4444',
+                    borderRadius: '12px'
+                }
+            });
         } finally {
             setProcessingPayment(false);
         }
@@ -202,7 +221,16 @@ const Cashier = () => {
     const handlePrintReceipt = (transaction) => {
         const printWindow = window.open('', '_blank');
         if (!printWindow) {
-            toast.error('Por favor permite las ventanas emergentes para imprimir');
+            toast.error('Por favor permite las ventanas emergentes para imprimir', {
+                style: {
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid #ef4444',
+                    color: '#ef4444',
+                    borderRadius: '12px',
+                    fontWeight: 'bold'
+                }
+            });
             return;
         }
 
@@ -302,12 +330,117 @@ const Cashier = () => {
                 userId: user?.id || 1, // Fallback for dev
                 summary: summary
             });
-            toast.success('Cierre de caja registrado correctamente');
+            toast.success('Cierre de caja registrado correctamente', {
+                icon: '💰',
+                style: {
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid #10b981',
+                    color: '#10b981',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 30px rgba(16, 185, 129, 0.2)',
+                    padding: '12px 20px',
+                    fontWeight: 'bold'
+                }
+            });
             setSummary(null); // Clear local summary
             fetchSummary(selectedDay.id); // Refresh from server
             fetchClosings(selectedDay.id);
         } catch (err) {
-            toast.error('Error al guardar el cierre de caja');
+            toast.error('Error al guardar el cierre de caja', {
+                style: {
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid #ef4444',
+                    color: '#ef4444',
+                    borderRadius: '12px',
+                    padding: '12px 20px',
+                    fontWeight: 'bold'
+                }
+            });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleSaveFinalClosing = async () => {
+        if (!selectedDay) return;
+
+        const needsFinal = closings.length > 0 && !closings[0].isFinal;
+
+        if (!needsFinal) {
+            const message = closings.length === 0
+                ? 'No hay cortes parciales para consolidar.'
+                : 'El corte definitivo ya ha sido realizado para todos los registros actuales.';
+
+            toast.error(message, {
+                icon: closings.length === 0 ? '🔎' : '✅',
+                style: {
+                    background: 'rgba(59, 130, 246, 0.2)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid #3b82f6',
+                    color: '#fff',
+                    borderRadius: '16px',
+                    fontWeight: 'bold',
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
+                }
+            });
+            return;
+        }
+
+        if (summary?.totalGeneral > 0) {
+            toast.error('No se puede realizar el corte definitivo: existen ventas actuales que deben ser cerradas primero.', {
+                icon: '🚫',
+                style: {
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid #ef4444',
+                    color: '#fff',
+                    borderRadius: '16px',
+                    fontWeight: 'bold',
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
+                }
+            });
+            return;
+        }
+        setShowFinalConfirmModal(true);
+    };
+
+    const executeFinalClosing = async () => {
+        setShowFinalConfirmModal(false);
+        try {
+            setSaving(true);
+            await axios.post(`${API_URL}/sales/final-closing`, {
+                salesDayId: selectedDay.id,
+                userId: user?.id
+            });
+            toast.success('Corte definitivo generado con éxito', {
+                icon: '🏆',
+                duration: 5000,
+                style: {
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid #10b981',
+                    color: '#fff',
+                    borderRadius: '16px',
+                    boxShadow: '0 10px 40px rgba(16, 185, 129, 0.3)',
+                    padding: '16px 24px',
+                    fontWeight: 'bold',
+                    fontSize: '1rem'
+                }
+            });
+            fetchSummary(selectedDay.id);
+            fetchClosings(selectedDay.id);
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Error al generar corte definitivo', {
+                style: {
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid #ef4444',
+                    color: '#fff',
+                    borderRadius: '12px'
+                }
+            });
         } finally {
             setSaving(false);
         }
@@ -397,12 +530,14 @@ const Cashier = () => {
                                 toast.error('Resuelva las ventas pendientes antes de cerrar', {
                                     icon: '⚠️',
                                     style: {
+                                        background: 'rgba(245, 158, 11, 0.2)',
+                                        backdropFilter: 'blur(12px)',
                                         border: '1px solid #f59e0b',
-                                        padding: '16px',
-                                        color: '#f59e0b',
-                                        background: 'rgba(245, 158, 11, 0.1)',
-                                        backdropFilter: 'blur(10px)',
-                                        fontWeight: 'bold'
+                                        color: '#fff',
+                                        padding: '16px 24px',
+                                        borderRadius: '16px',
+                                        fontWeight: 'bold',
+                                        boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
                                     }
                                 });
                                 handleViewPending();
@@ -411,8 +546,8 @@ const Cashier = () => {
                             }
                         }}
                         disabled={saving || !summary}
-                        onMouseEnter={() => setShowTooltip(true)}
-                        onMouseLeave={() => setShowTooltip(false)}
+                        onMouseEnter={() => setTooltipType('save')}
+                        onMouseLeave={() => setTooltipType(null)}
                         style={{
                             opacity: (saving || !summary || summary.totalPendiente > 0) ? 0.6 : 1,
                             position: 'relative',
@@ -421,39 +556,52 @@ const Cashier = () => {
                     >
                         <Save size={18} /> {saving ? 'Guardando...' : 'Registrar Corte'}
 
-                        {/* CUSTOM TOOLTIP - Alineado a la derecha para que crezca hacia la izquierda */}
-                        {showTooltip && summary?.totalPendiente > 0 && (
+                        {/* PREMIUM TOOLTIP - Registrar Corte */}
+                        {tooltipType === 'save' && summary?.totalPendiente > 0 && (
                             <div style={{
                                 position: 'absolute',
                                 top: '100%',
                                 right: '0',
                                 marginTop: '15px',
-                                background: 'rgba(245, 158, 11, 0.15)',
-                                backdropFilter: 'blur(12px)',
-                                border: '1px solid #f59e0b',
-                                color: '#f59e0b',
-                                padding: '12px 18px',
-                                borderRadius: '12px',
+                                background: 'rgba(10, 10, 10, 0.95)',
+                                backdropFilter: 'blur(25px)',
+                                border: '1px solid rgba(245, 158, 11, 0.5)',
+                                color: '#fff',
+                                padding: '14px 22px',
+                                borderRadius: '16px',
                                 fontSize: '0.85rem',
-                                fontWeight: 'bold',
+                                fontWeight: '600',
                                 whiteSpace: 'nowrap',
-                                boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
+                                boxShadow: '0 20px 50px rgba(0,0,0,0.7), 0 0 30px rgba(245, 158, 11, 0.15)',
                                 zIndex: 5000,
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '8px',
-                                animation: 'fadeInDown 0.2s ease-out'
+                                gap: '12px',
+                                animation: 'fadeInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
                             }}>
-                                <Clock size={16} /> Resolver ventas pendientes antes de cerrar
+                                <div style={{
+                                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                    padding: '8px',
+                                    borderRadius: '10px',
+                                    color: '#000',
+                                    display: 'flex',
+                                    boxShadow: '0 0 15px rgba(245, 158, 11, 0.3)'
+                                }}>
+                                    <Clock size={16} />
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <span style={{ color: '#f59e0b', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Acción Bloqueada</span>
+                                    <span>Resolver ventas pendientes antes de cerrar</span>
+                                </div>
                                 <div style={{
                                     position: 'absolute',
                                     bottom: '100%',
-                                    right: '20px',
+                                    right: '30px',
                                     width: '0',
                                     height: '0',
-                                    borderLeft: '8px solid transparent',
-                                    borderRight: '8px solid transparent',
-                                    borderBottom: '8px solid #f59e0b'
+                                    borderLeft: '10px solid transparent',
+                                    borderRight: '10px solid transparent',
+                                    borderBottom: '10px solid rgba(10, 10, 10, 0.95)'
                                 }}></div>
                             </div>
                         )}
@@ -465,16 +613,105 @@ const Cashier = () => {
                                 right: '-8px',
                                 background: '#f59e0b',
                                 color: 'black',
-                                width: '20px',
-                                height: '20px',
+                                width: '22px',
+                                height: '22px',
                                 borderRadius: '50%',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '0.7rem',
+                                fontSize: '0.75rem',
                                 fontWeight: 'bold',
+                                boxShadow: '0 0 15px rgba(245, 158, 11, 0.5)',
                                 pointerEvents: 'none'
                             }}>!</span>
+                        )}
+                    </button>
+
+                    <button
+                        className="btn"
+                        onClick={handleSaveFinalClosing}
+                        disabled={saving || closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && summary.totalGeneral > 0)}
+                        onMouseEnter={() => setTooltipType('final')}
+                        onMouseLeave={() => setTooltipType(null)}
+                        style={{
+                            background: (closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && summary.totalGeneral > 0))
+                                ? 'linear-gradient(135deg, #4b5563 0%, #1f2937 100%)'
+                                : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                            color: 'white',
+                            boxShadow: (closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && summary.totalGeneral > 0))
+                                ? 'none'
+                                : '0 4px 15px rgba(16, 185, 129, 0.3)',
+                            opacity: (saving || closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && summary.totalGeneral > 0)) ? 0.6 : 1,
+                            cursor: (saving || closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && summary.totalGeneral > 0)) ? 'not-allowed' : 'pointer',
+                            position: 'relative',
+                            transition: 'all 0.3s ease'
+                        }}
+                    >
+                        <CheckCircle2 size={18} /> {(closings.length > 0 && closings[0].isFinal) ? 'Corte Finalizado' : 'Corte Definitivo'}
+
+                        {/* PREMIUM TOOLTIP - Corte Definitivo */}
+                        {tooltipType === 'final' && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '100%',
+                                right: '0',
+                                marginTop: '15px',
+                                background: 'rgba(10, 10, 10, 0.95)',
+                                backdropFilter: 'blur(25px)',
+                                border: (summary?.totalGeneral > 0 || closings.length === 0 || (closings.length > 0 && closings[0].isFinal))
+                                    ? '1px solid rgba(239, 68, 68, 0.5)'
+                                    : '1px solid rgba(16, 185, 129, 0.5)',
+                                color: '#fff',
+                                padding: '14px 22px',
+                                borderRadius: '16px',
+                                fontSize: '0.85rem',
+                                fontWeight: '600',
+                                whiteSpace: 'nowrap',
+                                boxShadow: `0 20px 50px rgba(0,0,0,0.7), 0 0 30px ${(summary?.totalGeneral > 0 || closings.length === 0 || (closings.length > 0 && closings[0].isFinal)) ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)'}`,
+                                zIndex: 5000,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                animation: 'fadeInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+                            }}>
+                                <div style={{
+                                    background: (summary?.totalGeneral > 0 || closings.length === 0 || (closings.length > 0 && closings[0].isFinal))
+                                        ? 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)'
+                                        : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                    padding: '8px',
+                                    borderRadius: '10px',
+                                    color: '#fff',
+                                    display: 'flex',
+                                    boxShadow: `0 0 15px ${(summary?.totalGeneral > 0 || closings.length === 0 || (closings.length > 0 && closings[0].isFinal)) ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`
+                                }}>
+                                    {(summary?.totalGeneral > 0 || closings.length === 0 || (closings.length > 0 && closings[0].isFinal)) ? <X size={16} /> : <TrendingUp size={16} />}
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <span style={{ color: (summary?.totalGeneral > 0 || closings.length === 0 || (closings.length > 0 && closings[0].isFinal)) ? '#ef4444' : '#10b981', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                        {(closings.length > 0 && closings[0].isFinal) ? 'Cierre Completado' : ((summary?.totalGeneral > 0 || closings.length === 0) ? 'Acción Restringida' : 'Reporte Maestro')}
+                                    </span>
+                                    <span>
+                                        {closings.length === 0
+                                            ? 'No hay registros de cortes para consolidar'
+                                            : ((closings.length > 0 && closings[0].isFinal)
+                                                ? 'El día ya cuenta con un cierre definitivo'
+                                                : (summary?.totalGeneral > 0
+                                                    ? 'Primero cierre las ventas actuales con un corte normal'
+                                                    : 'Consolidar todos los cortes en un reporte final del día'))
+                                        }
+                                    </span>
+                                </div>
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: '100%',
+                                    right: '40px',
+                                    width: '0',
+                                    height: '0',
+                                    borderLeft: '10px solid transparent',
+                                    borderRight: '10px solid transparent',
+                                    borderBottom: '10px solid rgba(10, 10, 10, 0.95)'
+                                }}></div>
+                            </div>
                         )}
                     </button>
                 </div>
@@ -687,18 +924,37 @@ const Cashier = () => {
 
                                     return (
                                         <tr key={c.id}
-                                            style={{ borderTop: '1px solid var(--glass-border)', cursor: 'pointer' }}
+                                            style={{
+                                                borderTop: '1px solid var(--glass-border)',
+                                                cursor: 'pointer',
+                                                background: c.isFinal ? 'rgba(16, 185, 129, 0.05)' : 'transparent',
+                                                borderLeft: c.isFinal ? '4px solid #10b981' : 'none'
+                                            }}
                                             className="hover-glow"
                                             onClick={() => setViewingClosing(c)}
                                         >
                                             <td style={{ padding: '1rem 1.5rem' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                                                        {c.User?.name?.charAt(0) || 'U'}
+                                                    <div style={{
+                                                        width: '32px',
+                                                        height: '32px',
+                                                        borderRadius: '50%',
+                                                        background: c.isFinal ? '#10b981' : 'var(--primary)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 'bold'
+                                                    }}>
+                                                        {c.isFinal ? '★' : (c.User?.name?.charAt(0) || 'U')}
                                                     </div>
                                                     <div>
-                                                        <div style={{ fontWeight: '500' }}>{c.User?.name || 'Sistema'}</div>
-                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{c.User?.email}</div>
+                                                        <div style={{ fontWeight: 'bold', color: c.isFinal ? '#10b981' : 'inherit' }}>
+                                                            {c.isFinal ? 'CORTE DEFINITIVO' : (c.User?.name || 'Sistema')}
+                                                        </div>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                                            {c.isFinal ? 'Consolidación de día' : c.User?.email}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>
@@ -1001,6 +1257,79 @@ const Cashier = () => {
                                 </div>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Final Confirmation Modal */}
+            {showFinalConfirmModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.8)',
+                    backdropFilter: 'blur(12px)',
+                    zIndex: 5000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2rem'
+                }} onClick={() => setShowFinalConfirmModal(false)}>
+                    <div style={{
+                        maxWidth: '500px',
+                        width: '100%',
+                        background: 'rgba(15, 15, 15, 0.95)',
+                        borderRadius: '24px',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        padding: '2.5rem',
+                        textAlign: 'center',
+                        boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 40px rgba(16, 185, 129, 0.1)',
+                        animation: 'fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+                    }} onClick={e => e.stopPropagation()}>
+                        <div style={{
+                            width: '80px',
+                            height: '80px',
+                            background: 'rgba(16, 185, 129, 0.15)',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 1.5rem',
+                            color: '#10b981',
+                            border: '1px solid rgba(16, 185, 129, 0.2)'
+                        }}>
+                            <AlertTriangle size={40} />
+                        </div>
+                        <h2 style={{ fontSize: '1.75rem', marginBottom: '1rem', color: '#fff' }}>¿Confirmar Corte Definitivo?</h2>
+                        <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '2.5rem' }}>
+                            Esta acción consolidará **todos los cortes individuales** de este día en un solo reporte maestro. Esta acción es definitiva para el cierre del evento.
+                        </p>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button
+                                className="btn"
+                                style={{ flex: 1, padding: '1rem', background: 'rgba(255,255,255,0.05)', color: '#fff' }}
+                                onClick={() => setShowFinalConfirmModal(false)}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                className="btn"
+                                style={{
+                                    flex: 1,
+                                    padding: '1rem',
+                                    background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                                    color: '#fff',
+                                    fontWeight: 'bold',
+                                    boxShadow: '0 10px 20px rgba(16, 185, 129, 0.3)'
+                                }}
+                                onClick={executeFinalClosing}
+                                disabled={saving}
+                            >
+                                {saving ? 'Procesando...' : 'Confirmar Corte'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
