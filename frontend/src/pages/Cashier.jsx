@@ -673,42 +673,53 @@ const Cashier = () => {
                                 <tr style={{ textAlign: 'left' }}>
                                     <th style={{ padding: '1rem 1.5rem' }}>Usuario</th>
                                     <th style={{ padding: '1rem 1.5rem' }}>Fecha/Hora</th>
-                                    <th style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>Total Efectivo</th>
                                     <th style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>Total General</th>
+                                    <th style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>Liquidación</th>
+                                    <th style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>Ganancia</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {closings.map((c, i) => (
-                                    <tr key={c.id}
-                                        style={{ borderTop: '1px solid var(--glass-border)', cursor: 'pointer' }}
-                                        className="hover-glow"
-                                        onClick={() => setViewingClosing(c)}
-                                    >
-                                        <td style={{ padding: '1rem 1.5rem' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                                                    {c.User?.name?.charAt(0) || 'U'}
+                                {closings.map((c, i) => {
+                                    const details = typeof c.details === 'string' ? JSON.parse(c.details) : c.details;
+                                    const totalGanancia = details?.totalGananciaGrupos || 0;
+                                    const totalComisiones = details?.totalComisiones || 0;
+                                    const totalLiquidacion = parseFloat(c.totalGeneral) - totalComisiones - totalGanancia;
+
+                                    return (
+                                        <tr key={c.id}
+                                            style={{ borderTop: '1px solid var(--glass-border)', cursor: 'pointer' }}
+                                            className="hover-glow"
+                                            onClick={() => setViewingClosing(c)}
+                                        >
+                                            <td style={{ padding: '1rem 1.5rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                                                        {c.User?.name?.charAt(0) || 'U'}
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontWeight: '500' }}>{c.User?.name || 'Sistema'}</div>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{c.User?.email}</div>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <div style={{ fontWeight: '500' }}>{c.User?.name || 'Sistema'}</div>
-                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{c.User?.email}</div>
+                                            </td>
+                                            <td style={{ padding: '1rem 1.5rem' }}>
+                                                <div style={{ fontWeight: '500' }}>{new Date(c.timestamp).toLocaleDateString()}</div>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                                    {new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1rem 1.5rem' }}>
-                                            <div style={{ fontWeight: '500' }}>{new Date(c.timestamp).toLocaleDateString()}</div>
-                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                                {new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: 'bold' }}>
-                                            ₡{new Intl.NumberFormat('es-CR').format(c.totalEfectivo)}
-                                        </td>
-                                        <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--accent)' }}>
-                                            ₡{new Intl.NumberFormat('es-CR').format(c.totalGeneral)}
-                                        </td>
-                                    </tr>
-                                ))}
+                                            </td>
+                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--accent)' }}>
+                                                ₡{new Intl.NumberFormat('es-CR').format(c.totalGeneral)}
+                                            </td>
+                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: 'bold' }}>
+                                                ₡{new Intl.NumberFormat('es-CR').format(totalLiquidacion)}
+                                            </td>
+                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--primary)' }}>
+                                                ₡{new Intl.NumberFormat('es-CR').format(totalGanancia)}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

@@ -70,13 +70,17 @@ const Products = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const dataToSend = {
+            ...formData,
+            SupplierId: formData.SupplierId === '' ? null : formData.SupplierId
+        };
         try {
             if (editingProduct) {
-                const res = await axios.put(`${API_URL}/products/${editingProduct.id}`, formData);
+                const res = await axios.put(`${API_URL}/products/${editingProduct.id}`, dataToSend);
                 setProducts(products.map(p => p.id === editingProduct.id ? res.data : p));
                 toast.success('Producto actualizado');
             } else {
-                const res = await axios.post(`${API_URL}/products`, formData);
+                const res = await axios.post(`${API_URL}/products`, dataToSend);
                 setProducts([...products, res.data]);
                 toast.success('Producto creado');
             }
@@ -464,7 +468,7 @@ const Products = () => {
                                         placeholder="Buscar proveedor..."
                                         style={{
                                             width: '100%',
-                                            padding: '0.8rem 2.5rem 0.8rem 2.5rem',
+                                            padding: '0.8rem 2.8rem 0.8rem 2.5rem',
                                             border: 'none',
                                             background: 'transparent',
                                             color: 'white',
@@ -477,18 +481,28 @@ const Products = () => {
                                         }}
                                         onFocus={() => setIsSupplierListOpen(true)}
                                     />
-                                    <ChevronDown
-                                        size={20}
-                                        style={{
-                                            position: 'absolute',
-                                            right: '0.8rem',
-                                            color: 'var(--text-secondary)',
-                                            cursor: 'pointer',
-                                            transform: isSupplierListOpen ? 'rotate(180deg)' : 'none',
-                                            transition: 'transform 0.3s'
-                                        }}
-                                        onClick={() => setIsSupplierListOpen(!isSupplierListOpen)}
-                                    />
+                                    <div style={{ position: 'absolute', right: '2.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                        {supplierSearch && (
+                                            <X
+                                                size={16}
+                                                style={{ color: 'var(--text-secondary)', cursor: 'pointer' }}
+                                                onClick={() => {
+                                                    setSupplierSearch('');
+                                                    setFormData({ ...formData, SupplierId: '' });
+                                                }}
+                                            />
+                                        )}
+                                        <ChevronDown
+                                            size={20}
+                                            style={{
+                                                color: 'var(--text-secondary)',
+                                                cursor: 'pointer',
+                                                transform: isSupplierListOpen ? 'rotate(180deg)' : 'none',
+                                                transition: 'transform 0.3s'
+                                            }}
+                                            onClick={() => setIsSupplierListOpen(!isSupplierListOpen)}
+                                        />
+                                    </div>
                                 </div>
 
                                 {isSupplierListOpen && (
@@ -506,6 +520,23 @@ const Products = () => {
                                         zIndex: 3000,
                                         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
                                     }}>
+                                        <div
+                                            style={{
+                                                padding: '0.8rem 1rem',
+                                                cursor: 'pointer',
+                                                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                background: formData.SupplierId === '' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                                                color: 'var(--text-secondary)',
+                                                fontStyle: 'italic'
+                                            }}
+                                            onClick={() => {
+                                                setFormData({ ...formData, SupplierId: '' });
+                                                setSupplierSearch('');
+                                                setIsSupplierListOpen(false);
+                                            }}
+                                        >
+                                            Sin Proveedor (No asignado)
+                                        </div>
                                         {suppliers
                                             .filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()))
                                             .map(s => (
