@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { Plus, Loader2, Edit2, Trash2, X, Save, Phone, Mail, CreditCard, Percent, Search } from 'lucide-react';
+import { Plus, Loader2, Edit2, Trash2, X, Save, Phone, Mail, CreditCard, Percent, Search, Tag } from 'lucide-react';
 import { PatternFormat } from 'react-number-format';
 
 const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000/api`;
@@ -16,6 +16,7 @@ const Suppliers = () => {
 
     const [formData, setFormData] = useState({
         name: '',
+        type: 'Artesanía',
         phone: '',
         email: '',
         hasDataphone: false,
@@ -45,6 +46,7 @@ const Suppliers = () => {
             setEditingSupplier(supplier);
             setFormData({
                 name: supplier.name,
+                type: supplier.type || 'Artesanía',
                 phone: supplier.phone || '',
                 email: supplier.email || '',
                 hasDataphone: !!supplier.hasDataphone,
@@ -55,6 +57,7 @@ const Suppliers = () => {
             setEditingSupplier(null);
             setFormData({
                 name: '',
+                type: 'Artesanía',
                 phone: '',
                 email: '',
                 hasDataphone: false,
@@ -119,6 +122,7 @@ const Suppliers = () => {
 
     const filteredSuppliers = suppliers.filter(s =>
         s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (s.type && s.type.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (s.phone && s.phone.includes(searchTerm)) ||
         (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase()))
     );
@@ -179,6 +183,19 @@ const Suppliers = () => {
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', fontSize: '0.9rem' }}>
+                                <div style={{
+                                    display: 'inline-block',
+                                    padding: '0.2rem 0.6rem',
+                                    borderRadius: '1rem',
+                                    background: 'rgba(99, 102, 241, 0.1)',
+                                    color: 'var(--primary)',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 'bold',
+                                    marginBottom: '0.5rem'
+                                }}>
+                                    <Tag size={12} style={{ marginRight: '0.3rem' }} />
+                                    {s.type}
+                                </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
                                     <Phone size={16} /> {s.phone || 'Sin teléfono'}
                                 </div>
@@ -214,13 +231,25 @@ const Suppliers = () => {
                         </div>
                         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div className="form-group">
-                                <label>Nombre del Proveedor (Contacto)</label>
+                                <label>Nombre del Proveedor</label>
                                 <input
                                     type="text" required
                                     style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)', color: 'white' }}
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 />
+                            </div>
+                            <div className="form-group">
+                                <label>Tipo de Proveedor</label>
+                                <select
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: 'rgba(30, 41, 59, 1)', color: 'white', appearance: 'none' }}
+                                    value={formData.type}
+                                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                >
+                                    <option value="Alimentación">Alimentación</option>
+                                    <option value="Dulcería">Dulcería</option>
+                                    <option value="Otros">Otros</option>
+                                </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div className="form-group">

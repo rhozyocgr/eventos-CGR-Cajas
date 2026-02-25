@@ -368,7 +368,7 @@ const Products = () => {
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                    {filteredProducts.map(p => (
+                    {[...filteredProducts].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
                         <div key={p.id} className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <h3 style={{ color: 'var(--primary)' }}>{p.name}</h3>

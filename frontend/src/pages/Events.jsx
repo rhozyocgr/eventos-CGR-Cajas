@@ -584,8 +584,12 @@ const Events = () => {
                                                 const supplierDayProducts = day.Products?.filter(p => p.SupplierId === s.id);
                                                 if (!supplierDayProducts || supplierDayProducts.length === 0) return null;
                                                 return (
-                                                    <div key={s.id} style={{ marginBottom: '0.6rem' }}>
-                                                        <p style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 'bold', marginBottom: '0.2rem' }}>{s.name}</p>
+                                                    <div key={s.id} style={{ marginBottom: '1rem' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.3rem' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 'bold' }}>{s.name}</span>
+                                                            <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.05)', padding: '0.1rem 0.4rem', borderRadius: '0.3rem' }}>{s.type || 'Otros'}</span>
+                                                            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, rgba(255,255,255,0.1), transparent)' }}></div>
+                                                        </div>
                                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
                                                             {supplierDayProducts.map(p => (
                                                                 <span key={p.id} style={{ background: 'rgba(99, 102, 241, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '0.8rem', fontSize: '0.65rem', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
@@ -693,14 +697,22 @@ const Events = () => {
                                         const allSelected = supplierProducts.every(p => dayFormData.productIds.includes(p.id));
                                         return (
                                             <div key={s.id}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.75rem' }}>
-                                                    <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{s.name}</span>
-                                                    <button onClick={() => toggleSupplierDayProducts(s.id, !allSelected)} style={{ background: 'none', border: 'none', color: allSelected ? '#ef4444' : 'var(--primary)', cursor: 'pointer' }}>
-                                                        {allSelected ? 'Quitar todos' : 'Poner todos'}
-                                                    </button>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.8rem' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ color: 'var(--primary)', fontWeight: 'bold', fontSize: '0.85rem' }}>{s.name}</span>
+                                                        <button onClick={() => toggleSupplierDayProducts(s.id, !allSelected)} style={{ background: 'none', border: 'none', color: allSelected ? '#ef4444' : 'var(--primary)', cursor: 'pointer', fontSize: '0.75rem' }}>
+                                                            {allSelected ? 'Quitar todos' : 'Poner todos'}
+                                                        </button>
+                                                    </div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                        <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>
+                                                            {s.type || 'Otros'}
+                                                        </span>
+                                                        <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, rgba(255,255,255,0.1), transparent)' }}></div>
+                                                    </div>
                                                 </div>
                                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.4rem' }}>
-                                                    {supplierProducts.map(p => (
+                                                    {[...supplierProducts].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
                                                         <div
                                                             key={p.id}
                                                             onClick={() => toggleDayProduct(p.id)}

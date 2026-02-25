@@ -158,6 +158,7 @@ export const getSalesSummary = async (req, res) => {
                     if (!summary.bySupplier[supplierId]) {
                         summary.bySupplier[supplierId] = {
                             name: supplierName,
+                            type: supplier?.type || 'General',
                             total: 0,
                             cashTotal: 0,
                             cardTotal: 0,

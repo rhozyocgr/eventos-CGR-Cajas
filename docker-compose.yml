@@ -3,11 +3,7 @@ services:
     image: mariadb:11.2
     container_name: event-db
     restart: always
-    environment:
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
-      MARIADB_DATABASE: ${DB_NAME}
-      MARIADB_USER: ${DB_USER}
-      MARIADB_PASSWORD: ${DB_PASSWORD}
+    env_file: .env
     ports:
       - "3307:3306"
     volumes:
@@ -17,17 +13,11 @@ services:
     build: ./backend
     container_name: event-backend
     restart: always
+    env_file: .env
     ports:
       - "3000:3000"
     environment:
       DB_HOST: db
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
-      PORT: ${PORT}
-      JWT_SECRET: ${JWT_SECRET}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      ADMIN_EMAIL: ${ADMIN_EMAIL}
       CHOKIDAR_USEPOLLING: "true"
     depends_on:
       - db
@@ -39,11 +29,10 @@ services:
     build: ./frontend
     container_name: event-frontend
     restart: always
+    env_file: .env
     ports:
       - "5173:5173"
     environment:
-      VITE_API_URL: ${VITE_API_URL}
-      VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
     depends_on:

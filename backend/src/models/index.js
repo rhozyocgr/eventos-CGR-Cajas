@@ -12,6 +12,7 @@ const Supplier = sequelize.define('Supplier', {
     contact: { type: DataTypes.STRING },
     phone: { type: DataTypes.STRING },
     email: { type: DataTypes.STRING },
+    type: { type: DataTypes.STRING, defaultValue: 'General' },
     hasDataphone: { type: DataTypes.BOOLEAN, defaultValue: false },
     dataphoneCommission: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 },
     commission: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 }

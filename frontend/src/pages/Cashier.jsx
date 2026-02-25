@@ -277,7 +277,12 @@ const Cashier = () => {
                                     justifyContent: 'space-between',
                                     alignItems: 'center'
                                 }}>
-                                    <h4 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--primary)' }}>{supp.name}</h4>
+                                    <div>
+                                        <h4 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--primary)' }}>{supp.name}</h4>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.08)', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', display: 'inline-block', marginTop: '0.3rem', fontWeight: '500' }}>
+                                            {supp.type || 'General'}
+                                        </div>
+                                    </div>
                                     <div style={{ textAlign: 'right' }}>
                                         <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>SUBTOTAL</p>
                                         <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>₡{new Intl.NumberFormat('es-CR').format(supp.total)}</p>
@@ -430,7 +435,11 @@ const Cashier = () => {
                                     <Users size={16} /> Por: {viewingClosing.User?.name}
                                 </p>
                             </div>
-                            <button className="btn" onClick={() => setViewingClosing(null)} style={{ background: 'rgba(237, 32, 32, 0.05)' }}>
+                            <button className="btn" onClick={() => setViewingClosing(null)} style={{
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                color: 'white'
+                            }}>
                                 <ArrowLeft size={18} /> Cerrar
                             </button>
                         </div>
@@ -498,7 +507,12 @@ const SummaryView = ({ summary }) => {
                             justifyContent: 'space-between',
                             alignItems: 'center'
                         }}>
-                            <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--primary)' }}>{supp.name}</h4>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--primary)' }}>{supp.name}</h4>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', opacity: 0.9, marginTop: '0.2rem', fontWeight: '500' }}>
+                                    {supp.type || 'General'}
+                                </div>
+                            </div>
                             <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold' }}>₡{new Intl.NumberFormat('es-CR').format(supp.total)}</p>
                         </div>
                         <div style={{ padding: '1.2rem 1.5rem' }}>

@@ -367,13 +367,33 @@ const NewSale = () => {
                         </div>
                     </div>
 
-                    <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.8rem', alignContent: 'flex-start' }}>
-                        {filteredProducts.map(p => (
-                            <div key={p.id} className="glass-card hover-glow"
-                                onClick={() => addToCart(p)}
-                                style={{ padding: '1rem', cursor: 'pointer', textAlign: 'center', minHeight: '100px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '0.4rem' }}>
-                                <span style={{ fontWeight: 'bold', fontSize: '1rem', lineHeight: '1.2' }}>{p.name}</span>
-                                <span style={{ color: 'var(--accent)', fontWeight: 'bold', fontSize: '1rem' }}>₡{new Intl.NumberFormat('es-CR').format(p.price)}</span>
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        {Object.entries(
+                            filteredProducts.reduce((acc, p) => {
+                                const supplier = suppliers.find(s => s.id === p.SupplierId);
+                                const type = supplier?.type || 'Otros';
+                                if (!acc[type]) acc[type] = [];
+                                acc[type].push(p);
+                                return acc;
+                            }, {})
+                        ).sort(([a], [b]) => a.localeCompare(b)).map(([type, products]) => (
+                            <div key={type}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                                    <h3 style={{ margin: 0, fontSize: '0.8rem', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '1.5px', whiteSpace: 'nowrap', fontWeight: '900', opacity: 0.8 }}>
+                                        {type}
+                                    </h3>
+                                    <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, rgba(255,255,255,0.1), transparent)' }}></div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.8rem' }}>
+                                    {[...products].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
+                                        <div key={p.id} className="glass-card hover-glow"
+                                            onClick={() => addToCart(p)}
+                                            style={{ padding: '1rem', cursor: 'pointer', textAlign: 'center', minHeight: '100px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '0.4rem' }}>
+                                            <span style={{ fontWeight: 'bold', fontSize: '1rem', lineHeight: '1.2' }}>{p.name}</span>
+                                            <span style={{ color: 'var(--accent)', fontWeight: 'bold', fontSize: '1rem' }}>₡{new Intl.NumberFormat('es-CR').format(p.price)}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         ))}
                     </div>
