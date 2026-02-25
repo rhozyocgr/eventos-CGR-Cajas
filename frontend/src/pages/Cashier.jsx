@@ -17,12 +17,14 @@ import {
     DollarSign,
     Percent
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000/api`;
 
 const Cashier = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [events, setEvents] = useState([]);
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [eventDays, setEventDays] = useState([]);
@@ -254,7 +256,7 @@ const Cashier = () => {
                             </h3>
                         </div>
                         <div className="glass-card" style={{ padding: '1.5rem', background: 'rgba(239, 68, 68, 0.05)', borderColor: 'rgba(239, 68, 68, 0.2)' }}>
-                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#ef4444' }}>COMISIONES DATA.</p>
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#ef4444' }}>COMISIONES DATAFONO</p>
                             <h3 style={{ margin: '0.5rem 0 0 0', fontSize: '1.5rem', color: '#ef4444' }}>
                                 ₡{new Intl.NumberFormat('es-CR').format(summary.totalComisiones)}
                             </h3>
@@ -318,6 +320,14 @@ const Cashier = () => {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         <div style={{ background: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '0.8rem', border: '1px solid var(--glass-border)' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Ventas Efectivo:</span>
+                                                <span style={{ fontWeight: '500' }}>₡{new Intl.NumberFormat('es-CR').format(supp.cashTotal || 0)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Ventas SINPE:</span>
+                                                <span style={{ fontWeight: '500' }}>₡{new Intl.NumberFormat('es-CR').format(supp.sinpeTotal || 0)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                                 <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Ventas Tarjeta:</span>
                                                 <span style={{ fontWeight: '500' }}>₡{new Intl.NumberFormat('es-CR').format(supp.cardTotal)}</span>
                                             </div>
@@ -327,9 +337,49 @@ const Cashier = () => {
                                             </div>
                                             <div style={{ mt: '1rem', pt: '0.5rem', borderTop: '1px dashed var(--glass-border)', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', color: 'var(--accent)' }}>
                                                 <span>A Liquidar:</span>
-                                                <span>₡{new Intl.NumberFormat('es-CR').format(supp.total - supp.cardCommission)}</span>
+                                                <span>₡{new Intl.NumberFormat('es-CR').format(supp.total - (supp.cardCommission || 0))}</span>
                                             </div>
                                         </div>
+
+                                        {supp.pendingTotal > 0 && (
+                                            <div style={{
+                                                marginTop: '0.5rem',
+                                                padding: '0.8rem',
+                                                borderRadius: '0.8rem',
+                                                background: 'rgba(245, 158, 11, 0.1)',
+                                                border: '1px solid rgba(245, 158, 11, 0.2)',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '0.5rem'
+                                            }}>
+                                                <p style={{ margin: 0, fontSize: '0.75rem', color: '#f59e0b', fontWeight: 'bold' }}>
+                                                    ⚠️ Existen ventas pendientes por cobrar:
+                                                    <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem' }}>
+                                                        ₡{new Intl.NumberFormat('es-CR').format(supp.pendingTotal)}
+                                                    </span>
+                                                </p>
+                                                <button
+                                                    onClick={() => {
+                                                        localStorage.setItem('selectedEventId', selectedEvent.id);
+                                                        localStorage.setItem('selectedDayId', selectedDay.id);
+                                                        navigate('/new-sale', { state: { openPending: true } });
+                                                    }}
+                                                    style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        color: '#f59e0b',
+                                                        fontSize: '0.75rem',
+                                                        textDecoration: 'underline',
+                                                        cursor: 'pointer',
+                                                        textAlign: 'left',
+                                                        padding: 0,
+                                                        fontWeight: 'bold'
+                                                    }}
+                                                >
+                                                    Ir a cobrar pendientes →
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

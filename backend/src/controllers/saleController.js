@@ -139,12 +139,16 @@ export const getSalesSummary = async (req, res) => {
         transactions.forEach(tx => {
             const amount = parseFloat(tx.total);
             const pType = tx.PaymentType?.name?.toLowerCase() || 'desconocido';
+            const isPending = pType.includes('pendiente');
 
-            summary.totalGeneral += amount;
-            if (pType.includes('efectivo')) summary.totalEfectivo += amount;
-            else if (pType.includes('tarjeta')) summary.totalTarjeta += amount;
-            else if (pType.includes('sinpe')) summary.totalSinpe += amount;
-            else if (pType.includes('pendiente')) summary.totalPendiente += amount;
+            if (!isPending) {
+                summary.totalGeneral += amount;
+                if (pType.includes('efectivo')) summary.totalEfectivo += amount;
+                else if (pType.includes('tarjeta')) summary.totalTarjeta += amount;
+                else if (pType.includes('sinpe')) summary.totalSinpe += amount;
+            } else {
+                summary.totalPendiente += amount;
+            }
 
             if (tx.Sales) {
                 tx.Sales.forEach(sale => {
@@ -163,6 +167,7 @@ export const getSalesSummary = async (req, res) => {
                             cashTotal: 0,
                             cardTotal: 0,
                             sinpeTotal: 0,
+                            pendingTotal: 0,
                             cardCommission: 0,
                             groupProfit: 0,
                             products: {}
@@ -171,32 +176,34 @@ export const getSalesSummary = async (req, res) => {
 
                     const sData = summary.bySupplier[supplierId];
                     const saleTotal = parseFloat(sale.total);
-                    sData.total += saleTotal;
 
-                    let bankComm = 0;
-                    if (pType.includes('tarjeta')) {
-                        const bankCommRate = parseFloat(supplier?.dataphoneCommission || 0);
-                        bankComm = saleTotal * (bankCommRate / 100);
-                        sData.cardTotal += saleTotal;
-                        sData.cardCommission += bankComm;
-                        summary.totalComisiones += bankComm;
-                    } else if (pType.includes('efectivo')) {
-                        sData.cashTotal += saleTotal;
-                    } else if (pType.includes('sinpe')) {
-                        sData.sinpeTotal += saleTotal;
+                    if (!isPending) {
+                        sData.total += saleTotal;
+
+                        let bankComm = 0;
+                        if (pType.includes('tarjeta')) {
+                            const bankCommRate = parseFloat(supplier?.dataphoneCommission || 0);
+                            bankComm = saleTotal * (bankCommRate / 100);
+                            sData.cardTotal += saleTotal;
+                            sData.cardCommission += bankComm;
+                            summary.totalComisiones += bankComm;
+                        } else if (pType.includes('efectivo')) {
+                            sData.cashTotal += saleTotal;
+                        } else if (pType.includes('sinpe')) {
+                            sData.sinpeTotal += saleTotal;
+                        }
+
+                        // Liquidación y ganancia
+                        const netAfterBank = saleTotal - bankComm;
+                        const supplierCommRate = parseFloat(supplier?.commission || 0);
+                        const supplierPayment = netAfterBank * (supplierCommRate / 100);
+                        const profit = netAfterBank - supplierPayment;
+
+                        sData.groupProfit += profit;
+                        summary.totalGananciaGrupos += profit;
+                    } else {
+                        sData.pendingTotal += saleTotal;
                     }
-
-                    // New calculation logic:
-                    // 1. Amount after bank fees
-                    const netAfterBank = saleTotal - bankComm;
-                    // 2. What the supplier keeps (based on their commission %)
-                    const supplierCommRate = parseFloat(supplier?.commission || 0);
-                    const supplierPayment = netAfterBank * (supplierCommRate / 100);
-                    // 3. Profit for the group (the rest)
-                    const profit = netAfterBank - supplierPayment;
-
-                    sData.groupProfit += profit;
-                    summary.totalGananciaGrupos += profit;
 
                     if (!sData.products[product.id]) {
                         sData.products[product.id] = {
@@ -262,6 +269,28 @@ export const createCashClosing = async (req, res) => {
         res.status(201).json(closing);
     } catch (error) {
         console.error('ERROR IN createCashClosing:', error);
+        res.status(400).json({ error: error.message });
+    }
+};
+
+export const deleteTransaction = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        const transaction = await Transaction.findByPk(id);
+        if (!transaction) throw new Error('Transacción no encontrada');
+
+        // Podríamos marcarla como cancelada o eliminarla físicamente. 
+        // Por la simplicidad actual del sistema, vamos a eliminarla físicamente pero registrando en logs si fuera necesario.
+        // Opcionalmente: transaction.status = 'cancelled'; transaction.observation = reason; await transaction.save();
+
+        // Actualizamos la observación antes de borrar por si acaso persistimos algo, 
+        // pero mejor vamos a borrarla directamente ya que el usuario pide "eliminar".
+        await transaction.destroy();
+
+        res.json({ message: 'Transacción eliminada correctamente' });
+    } catch (error) {
         res.status(400).json({ error: error.message });
     }
 };

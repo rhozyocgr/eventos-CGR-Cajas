@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import {
@@ -24,8 +25,16 @@ import {
 const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000/api`;
 
 const NewSale = () => {
+    const location = useLocation();
     const [events, setEvents] = useState([]);
     const [selectedEvent, setSelectedEvent] = useState(null);
+
+    useEffect(() => {
+        if (location.state?.openPending) {
+            setShowPendingModal(true);
+        }
+    }, [location.state]);
+
     const [eventDays, setEventDays] = useState([]);
     const [selectedDay, setSelectedDay] = useState(null);
     const [paymentTypes, setPaymentTypes] = useState([]);
@@ -45,6 +54,15 @@ const NewSale = () => {
     const [showPendingModal, setShowPendingModal] = useState(false);
     const [selectedPendingSale, setSelectedPendingSale] = useState(null);
     const [isPendingActive, setIsPendingActive] = useState(false);
+    const [deletingTransaction, setDeletingTransaction] = useState(null);
+    const [deleteReason, setDeleteReason] = useState('');
+
+    const deleteReasons = [
+        'Creado por error',
+        'Pedido duplicado',
+        'El cliente ya lo había pagado',
+        'Otros'
+    ];
 
     useEffect(() => {
         fetchInitialData();
@@ -151,13 +169,13 @@ const NewSale = () => {
     };
 
     const updateQuantity = (productId, delta) => {
-        setCart(cart.map(item => {
+        const newCart = cart.map(item => {
             if (item.productId === productId) {
-                const newQty = item.quantity + delta;
-                return newQty > 0 ? { ...item, quantity: newQty } : item;
+                return { ...item, quantity: item.quantity + delta };
             }
             return item;
-        }));
+        }).filter(item => item.quantity > 0);
+        setCart(newCart);
     };
 
     const removeFromCart = (productId) => {
@@ -211,6 +229,24 @@ const NewSale = () => {
             fetchPendingSales(selectedDay.id);
         } catch (err) {
             toast.error('Error al actualizar pago');
+        } finally {
+            setPaymentLoading(false);
+        }
+    };
+
+    const handleDeletePending = async () => {
+        if (!deletingTransaction || !deleteReason) return;
+        try {
+            setPaymentLoading(true);
+            await axios.delete(`${API_URL}/sales/${deletingTransaction.id}`, {
+                data: { reason: deleteReason }
+            });
+            toast.success('Venta eliminada con éxito');
+            setDeletingTransaction(null);
+            setDeleteReason('');
+            fetchPendingSales(selectedDay.id);
+        } catch (err) {
+            toast.error('Error al eliminar la venta');
         } finally {
             setPaymentLoading(false);
         }
@@ -578,12 +614,20 @@ const NewSale = () => {
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
                                             <span style={{ fontWeight: '900', color: 'var(--accent)', fontSize: '1.4rem', display: 'block' }}>₡{new Intl.NumberFormat('es-CR').format(transaction.total)}</span>
-                                            <button
-                                                onClick={() => setSelectedPendingSale(transaction)}
-                                                style={{ marginTop: '0.5rem', padding: '0.6rem 1.5rem', borderRadius: '0.5rem', background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
-                                            >
-                                                Cobrar Todo
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                                <button
+                                                    onClick={() => setDeletingTransaction(transaction)}
+                                                    style={{ flex: 1, padding: '0.6rem', borderRadius: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                                                >
+                                                    <Trash2 size={16} /> Eliminar
+                                                </button>
+                                                <button
+                                                    onClick={() => setSelectedPendingSale(transaction)}
+                                                    style={{ flex: 2, padding: '0.6rem', borderRadius: '0.5rem', background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+                                                >
+                                                    Cobrar
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -611,6 +655,49 @@ const NewSale = () => {
                         >
                             Cerrar
                         </button>
+
+                        {/* Delete confirmation sub-modal */}
+                        {deletingTransaction && (
+                            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000, padding: '1rem' }}>
+                                <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+                                    <Trash2 size={40} color="#ef4444" style={{ marginBottom: '1rem' }} />
+                                    <h3 style={{ marginBottom: '0.5rem' }}>¿Eliminar Pendiente?</h3>
+                                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+                                        Esta acción no se puede deshacer. Selecciona un motivo:
+                                    </p>
+
+                                    <select
+                                        value={deleteReason}
+                                        onChange={(e) => setDeleteReason(e.target.value)}
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--glass-border)', outline: 'none', marginBottom: '1.5rem', fontSize: '1rem' }}
+                                    >
+                                        <option value="" style={{ background: '#1e293b' }}>-- Seleccionar motivo --</option>
+                                        {deleteReasons.map(r => (
+                                            <option key={r} value={r} style={{ background: '#1e293b' }}>{r}</option>
+                                        ))}
+                                    </select>
+
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        <button
+                                            onClick={() => {
+                                                setDeletingTransaction(null);
+                                                setDeleteReason('');
+                                            }}
+                                            style={{ flex: 1, padding: '0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', cursor: 'pointer' }}
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            disabled={!deleteReason || paymentLoading}
+                                            onClick={handleDeletePending}
+                                            style={{ flex: 1, padding: '0.8rem', borderRadius: '0.5rem', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold', opacity: (!deleteReason || paymentLoading) ? 0.5 : 1 }}
+                                        >
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
