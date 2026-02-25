@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart, ChevronLeft, LogOut } from 'lucide-react';
+import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart, ChevronLeft, LogOut, Calculator } from 'lucide-react';
 import { useState } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -97,7 +97,7 @@ const MainLayout = ({ children }) => {
                     <NavItem to="/products" icon={Package} label="Productos" />
                     <NavItem to="/suppliers" icon={Truck} label="Proveedores" />
                     <NavItem to="/events" icon={Calendar} label="Eventos" />
-                    <NavItem to="/payments" icon={CreditCard} label="Cajas" />
+                    <NavItem to="/payments" icon={Calculator} label="Cierre de cajas" />
                 </div>
 
                 <div style={{

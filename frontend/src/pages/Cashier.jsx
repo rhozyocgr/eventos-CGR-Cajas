@@ -149,7 +149,7 @@ const Cashier = () => {
                     }}>
                         <Calculator size={40} />
                     </div>
-                    <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: 'var(--primary)' }}>Cajas</h1>
+                    <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', color: 'var(--primary)' }}>Cierre de cajas</h1>
                     <p style={{ color: 'var(--text-secondary)' }}>Selecciona el evento para realizar el corte</p>
                 </div>
                 <div style={{ display: 'grid', gap: '1rem' }}>

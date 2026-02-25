@@ -251,19 +251,20 @@ export const getSalesSummary = async (req, res) => {
 
                         sData.groupProfit += profit;
                         summary.totalGananciaGrupos += profit;
+
+                        // Solo sumar productos si NO es pendiente
+                        if (!sData.products[product.id]) {
+                            sData.products[product.id] = {
+                                name: product.name,
+                                quantity: 0,
+                                total: 0
+                            };
+                        }
+                        sData.products[product.id].quantity += sale.quantity;
+                        sData.products[product.id].total += saleTotal;
                     } else {
                         sData.pendingTotal += saleTotal;
                     }
-
-                    if (!sData.products[product.id]) {
-                        sData.products[product.id] = {
-                            name: product.name,
-                            quantity: 0,
-                            total: 0
-                        };
-                    }
-                    sData.products[product.id].quantity += sale.quantity;
-                    sData.products[product.id].total += saleTotal;
                 });
             }
         });
