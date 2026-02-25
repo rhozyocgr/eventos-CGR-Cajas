@@ -11,7 +11,7 @@ import Events from './pages/Events';
 import NewSale from './pages/NewSale';
 import Cashier from './pages/Cashier';
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 console.log('Google Client ID cargado:', GOOGLE_CLIENT_ID);
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
