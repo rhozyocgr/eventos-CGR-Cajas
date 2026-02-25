@@ -1,10 +1,10 @@
 import { Op } from 'sequelize';
-import { Sale, Transaction, SalesDay, Product, PaymentType, CashClosing, Supplier, User, Event, sequelize } from '../models/index.js';
+import { Sale, Transaction, SalesDay, Product, PaymentType, CashClosing, Supplier, User, Event, CashOpening, sequelize } from '../models/index.js';
 
 export const createSale = async (req, res) => {
     const t = await sequelize.transaction();
     try {
-        const { salesDayId, items, paymentTypeId, observation } = req.body;
+        const { salesDayId, items, paymentTypeId, observation, userId } = req.body;
 
         if (!items || items.length === 0) {
             throw new Error('No items in sale');
@@ -30,7 +30,8 @@ export const createSale = async (req, res) => {
             total: transactionTotal,
             observation: observation,
             SalesDayId: salesDayId,
-            PaymentTypeId: paymentTypeId
+            PaymentTypeId: paymentTypeId,
+            UserId: userId || null
         }, { transaction: t });
 
         for (const item of processedItems) {
@@ -44,6 +45,52 @@ export const createSale = async (req, res) => {
         res.status(201).json({ message: 'Transaction completed successfully', transaction });
     } catch (error) {
         await t.rollback();
+        res.status(400).json({ error: error.message });
+    }
+};
+
+export const openCash = async (req, res) => {
+    try {
+        const { salesDayId, userId, initialCash } = req.body;
+        const opening = await CashOpening.create({
+            SalesDayId: salesDayId,
+            UserId: userId,
+            initialCash: initialCash || 0,
+            status: 'open'
+        });
+        res.status(201).json(opening);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+export const getActiveOpening = async (req, res) => {
+    try {
+        const { salesDayId, userId } = req.query;
+        const opening = await CashOpening.findOne({
+            where: {
+                SalesDayId: salesDayId,
+                UserId: userId,
+                status: 'open'
+            }
+        });
+        res.json(opening);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const closeCash = async (req, res) => {
+    try {
+        const { id } = req.params; // ID de la apertura (CashOpening)
+        const opening = await CashOpening.findByPk(id);
+        if (!opening) throw new Error('Apertura no encontrada');
+
+        opening.status = 'closed';
+        await opening.save();
+
+        res.json({ message: 'Caja cerrada correctamente' });
+    } catch (error) {
         res.status(400).json({ error: error.message });
     }
 };
@@ -93,7 +140,7 @@ export const updatePaymentType = async (req, res) => {
 
 export const getSalesSummary = async (req, res) => {
     try {
-        const { salesDayId } = req.query;
+        const { salesDayId, userId, since } = req.query;
         if (!salesDayId) throw new Error('salesDayId is required');
 
         // Find the last cash closing for this day
@@ -103,10 +150,13 @@ export const getSalesSummary = async (req, res) => {
         });
 
         const transactionWhere = { SalesDayId: salesDayId };
+        if (userId) transactionWhere.UserId = userId;
 
-        // If there was a closing, only get transactions after that closing's timestamp
-        if (lastClosing) {
-            transactionWhere.createdAt = { [Op.gt]: lastClosing.timestamp };
+        // Determine the start time for the summary
+        const startTime = since ? new Date(since) : (lastClosing ? lastClosing.timestamp : null);
+
+        if (startTime) {
+            transactionWhere.timestamp = { [Op.gt]: startTime };
         }
 
         const transactions = await Transaction.findAll({

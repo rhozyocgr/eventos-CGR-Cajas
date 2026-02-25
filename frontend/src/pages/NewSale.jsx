@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 import {
     ShoppingCart,
     Calendar,
@@ -25,9 +26,16 @@ import {
 const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000/api`;
 
 const NewSale = () => {
+    const { user } = useAuth();
     const location = useLocation();
     const [events, setEvents] = useState([]);
     const [selectedEvent, setSelectedEvent] = useState(null);
+    const [cashOpening, setCashOpening] = useState(null);
+    const [showOpeningModal, setShowOpeningModal] = useState(false);
+    const [initialCashInput, setInitialCashInput] = useState('');
+    const [sessionTotal, setSessionTotal] = useState(0);
+    const [sessionSummary, setSessionSummary] = useState(null);
+    const [showClosingModal, setShowClosingModal] = useState(false);
 
     useEffect(() => {
         if (location.state?.openPending) {
@@ -110,6 +118,7 @@ const NewSale = () => {
                     setSelectedDay(todayDay);
                     localStorage.setItem('selectedDayId', todayDay.id);
                     fetchPendingSales(todayDay.id);
+                    checkCashOpening(todayDay.id);
                 }
             }
         } catch (err) {
@@ -119,11 +128,97 @@ const NewSale = () => {
         }
     };
 
+    const checkCashOpening = async (dayId) => {
+        if (!user || !dayId) return;
+        // Resetear estados locales antes de verificar
+        setCashOpening(null);
+        setSessionTotal(0);
+        setSessionSummary(null);
+
+        try {
+            const res = await axios.get(`${API_URL}/sales/active-opening?salesDayId=${dayId}&userId=${user.id}`);
+            if (res.data) {
+                setCashOpening(res.data);
+                fetchSessionTotal(dayId, res.data);
+            } else {
+                setShowOpeningModal(true);
+            }
+        } catch (err) {
+            console.error('Error checking cash opening', err);
+        }
+    };
+
+    const fetchSessionTotal = async (dayId, opening = null) => {
+        const activeOpening = opening || cashOpening;
+        if (!user || !dayId || !activeOpening) return;
+        try {
+            // Enviamos el userId y la hora de apertura para que el total sea solo de esta sesión
+            const res = await axios.get(`${API_URL}/sales/summary?salesDayId=${dayId}&userId=${user.id}&since=${activeOpening.openingTime}`);
+            setSessionTotal(res.data.totalGeneral || 0);
+            setSessionSummary(res.data);
+        } catch (err) {
+            console.error('Error fetching session total', err);
+        }
+    };
+
+    const handleOpenCash = async () => {
+        if (!selectedDay || !user) return;
+        try {
+            // Limpiar cualquier carácter que no sea número antes de enviar al backend
+            const cleanValue = initialCashInput.replace(/\D/g, '');
+            const initialCash = parseFloat(cleanValue) || 0;
+
+            const res = await axios.post(`${API_URL}/sales/open-cash`, {
+                salesDayId: selectedDay.id,
+                userId: user.id,
+                initialCash: initialCash
+            });
+            setCashOpening(res.data);
+            setShowOpeningModal(false);
+            toast.success('Caja abierta correctamente');
+            fetchSessionTotal(selectedDay.id, res.data);
+        } catch (err) {
+            toast.error('Error al abrir caja');
+        }
+    };
+
+    const handleCloseCash = async () => {
+        if (!cashOpening) return;
+        try {
+            setPaymentLoading(true);
+            await axios.put(`${API_URL}/sales/close-cash/${cashOpening.id}`);
+            toast.success('Caja cerrada con éxito');
+            setCashOpening(null);
+            setShowClosingModal(false);
+            setSessionTotal(0);
+            setSessionSummary(null);
+            // Al limpiar cashOpening, el modal de apertura volverá a salir si el usuario sigue en la página,
+            // o podemos redirigirlo/resetear el día.
+            setSelectedDay(null);
+            localStorage.removeItem('selectedDayId');
+        } catch (err) {
+            toast.error('Error al cerrar caja');
+        } finally {
+            setPaymentLoading(false);
+        }
+    };
+
+    const formatInitialCash = (value) => {
+        // Eliminar cualquier cosa que no sea número
+        const cleanValue = value.replace(/\D/g, '');
+        if (!cleanValue) return '';
+        // Formatear con separadores de miles
+        return new Intl.NumberFormat('es-CR').format(parseInt(cleanValue));
+    };
+
     const handleSelectEvent = (event) => {
         setSelectedEvent(event);
         localStorage.setItem('selectedEventId', event.id);
         localStorage.removeItem('selectedDayId');
         setSelectedDay(null);
+        setCashOpening(null);
+        setSessionTotal(0);
+        setSessionSummary(null);
         fetchEventData(event.id);
     };
 
@@ -131,6 +226,7 @@ const NewSale = () => {
         setSelectedDay(day);
         localStorage.setItem('selectedDayId', day.id);
         fetchPendingSales(day.id);
+        checkCashOpening(day.id);
     };
 
     const fetchPendingSales = async (dayId) => {
@@ -147,6 +243,9 @@ const NewSale = () => {
         localStorage.removeItem('selectedDayId');
         setSelectedEvent(null);
         setSelectedDay(null);
+        setCashOpening(null);
+        setSessionTotal(0);
+        setSessionSummary(null);
         setCart([]);
     };
 
@@ -196,7 +295,8 @@ const NewSale = () => {
                 items: cart.map(item => ({
                     productId: item.productId,
                     quantity: item.quantity
-                }))
+                })),
+                userId: user.id
             });
 
             const pType = paymentTypes.find(t => t.id === paymentTypeId);
@@ -212,6 +312,7 @@ const NewSale = () => {
                 setShowSuccessOverlay(false);
             }, 2000);
             fetchPendingSales(selectedDay.id);
+            fetchSessionTotal(selectedDay.id);
             setIsPendingActive(false); // Reset for next sale
         } catch (err) {
             toast.error('Error al procesar la venta');
@@ -227,6 +328,7 @@ const NewSale = () => {
             toast.success('Cobro completado con éxito');
             setSelectedPendingSale(null);
             fetchPendingSales(selectedDay.id);
+            fetchSessionTotal(selectedDay.id);
         } catch (err) {
             toast.error('Error al actualizar pago');
         } finally {
@@ -245,6 +347,7 @@ const NewSale = () => {
             setDeletingTransaction(null);
             setDeleteReason('');
             fetchPendingSales(selectedDay.id);
+            fetchSessionTotal(selectedDay.id);
         } catch (err) {
             toast.error('Error al eliminar la venta');
         } finally {
@@ -342,22 +445,48 @@ const NewSale = () => {
                         </p>
                     </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+
+                {/* BOTÓN CERRAR CAJA EN EL CENTRO */}
+                <button
+                    onClick={() => setShowClosingModal(true)}
+                    style={{
+                        background: 'var(--primary)',
+                        color: 'white',
+                        padding: '0.7rem 2rem',
+                        borderRadius: '0.8rem',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        fontWeight: 'bold',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)'
+                    }}
+                >
+                    <X size={18} /> CERRAR CAJA
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <button
                         onClick={() => setShowPendingModal(true)}
-                        style={{ position: 'relative', background: 'rgba(245, 158, 11, 0.1)', border: 'none', color: '#f59e0b', padding: '0.6rem', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                        style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', color: '#f59e0b', padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}
                     >
-                        <Clock size={18} />
+                        <Clock size={16} />
+                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Pendientes</span>
                         {pendingSales.length > 0 && (
-                            <span style={{ position: 'absolute', top: '-5px', right: '-5px', background: '#ef4444', color: 'white', fontSize: '0.6rem', padding: '0.2rem 0.4rem', borderRadius: '1rem', fontWeight: 'bold' }}>
+                            <span style={{ position: 'absolute', top: '-8px', right: '-8px', background: '#ef4444', color: 'white', fontSize: '0.7rem', width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', border: '2px solid #0f172a' }}>
                                 {pendingSales.length}
                             </span>
                         )}
-                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Pendientes</span>
                     </button>
-                    <div style={{ textAlign: 'right', marginLeft: '0.5rem' }}>
-                        <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Total Sesión</p>
-                        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--accent)' }}>₡0</p>
+                    <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div>
+                            <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Total Sesión</p>
+                            <p style={{ margin: 0, fontSize: '1rem', fontWeight: 'bold', color: 'var(--accent)' }}>
+                                ₡{new Intl.NumberFormat('es-CR').format(sessionTotal)}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -698,6 +827,146 @@ const NewSale = () => {
                                 </div>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* OPEN CASH MODAL */}
+            {showOpeningModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 6000, padding: '1rem' }}>
+                    <div className="glass-card" style={{ padding: '2.5rem', width: '100%', maxWidth: '450px', textAlign: 'center' }}>
+                        <div style={{ background: 'rgba(99, 102, 241, 0.1)', width: '70px', height: '70px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                            <Store size={35} color="var(--primary)" />
+                        </div>
+                        <h2 style={{ marginBottom: '0.5rem' }}>Apertura de Caja</h2>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '2rem' }}>
+                            Bienvenido, <span style={{ color: 'white', fontWeight: 'bold' }}>{user?.name}</span>. <br />
+                            Por favor, indica el monto de efectivo inicial para hoy.
+                        </p>
+
+                        <div style={{ marginBottom: '2rem', textAlign: 'left' }}>
+                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 'bold', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                Efectivo Inicial (₡)
+                            </label>
+                            <input
+                                type="text"
+                                autoFocus
+                                placeholder="0"
+                                value={initialCashInput}
+                                onChange={(e) => setInitialCashInput(formatInitialCash(e.target.value))}
+                                style={{
+                                    width: '100%',
+                                    padding: '1.2rem',
+                                    borderRadius: '1rem',
+                                    border: '2px solid var(--glass-border)',
+                                    background: 'rgba(255,255,255,0.05)',
+                                    color: 'white',
+                                    outline: 'none',
+                                    fontSize: '1.5rem',
+                                    fontWeight: 'bold',
+                                    textAlign: 'center'
+                                }}
+                            />
+                        </div>
+
+                        <button
+                            onClick={handleOpenCash}
+                            style={{
+                                width: '100%',
+                                padding: '1.2rem',
+                                borderRadius: '1rem',
+                                background: 'var(--primary)',
+                                color: 'white',
+                                border: 'none',
+                                fontWeight: 'bold',
+                                fontSize: '1.1rem',
+                                cursor: 'pointer',
+                                boxShadow: '0 10px 20px rgba(99, 102, 241, 0.2)',
+                                marginBottom: '1rem'
+                            }}
+                        >
+                            ABRIR CAJA
+                        </button>
+                        <button
+                            onClick={() => {
+                                setShowOpeningModal(false);
+                                setSelectedDay(null);
+                                localStorage.removeItem('selectedDayId');
+                                setInitialCashInput('');
+                            }}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                textDecoration: 'underline'
+                            }}
+                        >
+                            Cancelar y volver
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* CLOSE CASH MODAL (SUMMARY) */}
+            {showClosingModal && sessionSummary && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 6500, padding: '1rem' }}>
+                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '500px' }}>
+                        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                            <div style={{ background: 'rgba(239, 68, 68, 0.1)', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                                <Clock size={30} color="#ef4444" />
+                            </div>
+                            <h2 style={{ marginBottom: '0.5rem' }}>Resumen de Cierre</h2>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                Sesión de <span style={{ color: 'white' }}>{user?.name}</span>
+                            </p>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+                            {[
+                                { label: 'Efectivo Inicial', value: cashOpening?.initialCash, color: 'var(--text-secondary)' },
+                                { label: 'Ventas en Efectivo', value: sessionSummary.totalEfectivo, color: 'white' },
+                                { label: 'Ventas SINPE', value: sessionSummary.totalSinpe, color: 'white' },
+                                { label: 'Ventas Tarjeta', value: sessionSummary.totalTarjeta, color: 'white' },
+                                { label: 'Ventas Pendientes', value: sessionSummary.totalPendiente, color: '#f59e0b' }
+                            ].map((item, idx) => (
+                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem', borderRadius: '0.6rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
+                                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{item.label}</span>
+                                    <span style={{ fontWeight: 'bold', color: item.color }}>₡{new Intl.NumberFormat('es-CR').format(item.value || 0)}</span>
+                                </div>
+                            ))}
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', borderRadius: '0.8rem', background: 'rgba(99, 102, 241, 0.1)', border: '1px solid var(--primary)', marginTop: '0.5rem' }}>
+                                <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>TOTAL VENDIDO</span>
+                                <span style={{ fontWeight: '900', fontSize: '1.2rem', color: 'var(--accent)' }}>₡{new Intl.NumberFormat('es-CR').format(sessionTotal)}</span>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button
+                                onClick={() => setShowClosingModal(false)}
+                                style={{ flex: 1, padding: '1rem', borderRadius: '0.8rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', cursor: 'pointer' }}
+                            >
+                                Seguir Vendiendo
+                            </button>
+                            <button
+                                onClick={handleCloseCash}
+                                style={{
+                                    flex: 1,
+                                    padding: '1rem',
+                                    borderRadius: '0.8rem',
+                                    background: '#ef4444',
+                                    color: 'white',
+                                    border: 'none',
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 10px 20px rgba(239, 68, 68, 0.2)'
+                                }}
+                            >
+                                CONFIRMAR CIERRE
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

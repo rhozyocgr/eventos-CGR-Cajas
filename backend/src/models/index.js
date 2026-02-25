@@ -63,12 +63,21 @@ const CashClosing = sequelize.define('CashClosing', {
     timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 });
 
+const CashOpening = sequelize.define('CashOpening', {
+    initialCash: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    openingTime: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    status: { type: DataTypes.ENUM('open', 'closed'), defaultValue: 'open' }
+});
+
 // Associations
 Supplier.hasMany(Product);
 Product.belongsTo(Supplier);
 
 SalesDay.hasMany(Transaction);
 Transaction.belongsTo(SalesDay);
+
+User.hasMany(Transaction);
+Transaction.belongsTo(User);
 
 Transaction.hasMany(Sale);
 Sale.belongsTo(Transaction);
@@ -88,10 +97,16 @@ CashClosing.belongsTo(User);
 SalesDay.hasMany(CashClosing);
 CashClosing.belongsTo(SalesDay);
 
+User.hasMany(CashOpening);
+CashOpening.belongsTo(User);
+
+SalesDay.hasMany(CashOpening);
+CashOpening.belongsTo(SalesDay);
+
 Event.belongsToMany(Product, { through: 'EventProducts' });
 Product.belongsToMany(Event, { through: 'EventProducts' });
 
 SalesDay.belongsToMany(Product, { through: 'DayProducts' });
 Product.belongsToMany(SalesDay, { through: 'DayProducts' });
 
-export { sequelize, User, Supplier, Product, SalesDay, PaymentType, Transaction, Sale, Event, CashClosing };
+export { sequelize, User, Supplier, Product, SalesDay, PaymentType, Transaction, Sale, Event, CashClosing, CashOpening };
