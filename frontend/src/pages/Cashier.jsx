@@ -23,7 +23,8 @@ import {
     Receipt,
     Trash2,
     CheckCircle,
-    AlertTriangle
+    AlertTriangle,
+    ShieldCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -51,6 +52,8 @@ const Cashier = () => {
     const [selectedPendingSale, setSelectedPendingSale] = useState(null);
     const [tooltipType, setTooltipType] = useState(null); // 'save' | 'final'
     const [showFinalConfirmModal, setShowFinalConfirmModal] = useState(false);
+    const [pendingOpenings, setPendingOpenings] = useState([]);
+    const [activeTab, setActiveTab] = useState('summary'); // 'summary' | 'receivables' | 'authorizations'
 
     const deleteReasons = ['Error de digitación', 'Cliente se arrepintió', 'Cambio de método de pago', 'Duplicado', 'Otro'];
 
@@ -62,7 +65,12 @@ const Cashier = () => {
         if (savedEventId) {
             loadInitialSelection(savedEventId, savedDayId);
         }
-    }, []);
+        if (user?.role === 'admin') {
+            fetchPendingOpenings();
+            const interval = setInterval(fetchPendingOpenings, 30000); // Poll cada 30s
+            return () => clearInterval(interval);
+        }
+    }, [user]);
 
     const fetchPaymentTypes = async () => {
         try {
@@ -70,6 +78,29 @@ const Cashier = () => {
             setPaymentTypes(res.data);
         } catch (err) {
             console.error('Error fetching payment types:', err);
+        }
+    };
+
+    const fetchPendingOpenings = async () => {
+        if (user?.role !== 'admin') return;
+        try {
+            const res = await axios.get(`${API_URL}/sales/pending-openings`);
+            setPendingOpenings(res.data);
+        } catch (err) {
+            console.error('Error fetching pending openings:', err);
+        }
+    };
+
+    const handleAuthorizeOpening = async (openingId, status) => {
+        try {
+            await axios.post(`${API_URL}/sales/authorize-opening/${openingId}`, {
+                status,
+                adminId: user.id
+            });
+            toast.success(`Sesión ${status === 'authorized' ? 'autorizada' : 'denegada'} correctamente`);
+            fetchPendingOpenings();
+        } catch (err) {
+            toast.error('Error al procesar autorización');
         }
     };
 
@@ -721,6 +752,65 @@ const Cashier = () => {
                 <div style={{ textAlign: 'center', padding: '5rem' }}>
                     <RefreshCcw className="animate-spin" size={40} color="var(--primary)" />
                     <p style={{ marginTop: '1rem' }}>Calculando totales...</p>
+                </div>
+            ) : activeTab === 'authorizations' ? (
+                <div className="authorizations-panel">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h2 style={{ margin: 0 }}>Gestión de Autorizaciones</h2>
+                        <button onClick={fetchPendingOpenings} className="btn" style={{ background: 'rgba(255,255,255,0.05)', fontSize: '0.8rem' }}>
+                            <RefreshCcw size={14} /> Actualizar
+                        </button>
+                    </div>
+
+                    {pendingOpenings.length === 0 ? (
+                        <div className="glass-card" style={{ padding: '4rem', textAlign: 'center', opacity: 0.6 }}>
+                            <ShieldCheck size={48} color="var(--primary)" style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                            <p>No hay solicitudes de apertura pendientes en este momento.</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'grid', gap: '1rem' }}>
+                            {pendingOpenings.map(opening => (
+                                <div key={opening.id} className="glass-card hover-glow" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: '4px solid var(--primary)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                                        <div style={{ width: '50px', height: '50px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                                            <Users size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{opening.User?.name || 'Usuario desconocido'}</h3>
+                                            <p style={{ margin: '0.2rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{opening.User?.email}</p>
+                                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', fontSize: '0.75rem' }}>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--accent)' }}>
+                                                    <Calendar size={12} /> {new Date(opening.openingTime).toLocaleDateString()}
+                                                </span>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--accent)' }}>
+                                                    <Clock size={12} /> {new Date(opening.openingTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                    <Store size={12} /> {opening.SalesDay?.description || 'Día de venta'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.8rem' }}>
+                                        <button
+                                            onClick={() => handleAuthorizeOpening(opening.id, 'denied')}
+                                            className="btn"
+                                            style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '0.6rem 1.2rem' }}
+                                        >
+                                            Denegar
+                                        </button>
+                                        <button
+                                            onClick={() => handleAuthorizeOpening(opening.id, 'authorized')}
+                                            className="btn btn-primary"
+                                            style={{ padding: '0.6rem 1.5rem', boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)' }}
+                                        >
+                                            Autorizar Apertura
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             ) : (summary && summary.totalGeneral > 0) ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>

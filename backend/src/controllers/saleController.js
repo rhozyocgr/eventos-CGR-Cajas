@@ -6,6 +6,16 @@ export const createSale = async (req, res) => {
     try {
         const { salesDayId, items, paymentTypeId, observation, userId } = req.body;
 
+        // Validar apertura autorizada
+        const activeOpening = await CashOpening.findOne({
+            where: { SalesDayId: salesDayId, UserId: userId, status: 'authorized' }
+        });
+
+        if (!activeOpening) {
+            await t.rollback();
+            return res.status(403).json({ error: 'No tienes una apertura de caja autorizada para procesar ventas.' });
+        }
+
         if (!items || items.length === 0) {
             throw new Error('No items in sale');
         }
@@ -52,11 +62,22 @@ export const createSale = async (req, res) => {
 export const openCash = async (req, res) => {
     try {
         const { salesDayId, userId, initialCash } = req.body;
+
+        let initialStatus = 'pending';
+        let authorizedById = null;
+
+        const user = await User.findByPk(userId);
+        if (user && user.role === 'admin') {
+            initialStatus = 'authorized';
+            authorizedById = user.id;
+        }
+
         const opening = await CashOpening.create({
             SalesDayId: salesDayId,
             UserId: userId,
             initialCash: initialCash || 0,
-            status: 'open'
+            status: initialStatus,
+            authorizedById: authorizedById
         });
         res.status(201).json(opening);
     } catch (error) {
@@ -71,12 +92,46 @@ export const getActiveOpening = async (req, res) => {
             where: {
                 SalesDayId: salesDayId,
                 UserId: userId,
-                status: 'open'
+                status: ['pending', 'authorized']
             }
         });
         res.json(opening);
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+};
+
+export const getPendingOpenings = async (req, res) => {
+    try {
+        const openings = await CashOpening.findAll({
+            where: { status: 'pending' },
+            include: [
+                { model: User, attributes: ['name', 'email'] },
+                { model: SalesDay, attributes: ['date', 'description'] }
+            ],
+            order: [['openingTime', 'DESC']]
+        });
+        res.json(openings);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const authorizeOpening = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, adminId } = req.body; // status: 'authorized' o 'denied'
+
+        const opening = await CashOpening.findByPk(id);
+        if (!opening) throw new Error('Solicitud de apertura no encontrada');
+
+        opening.status = status;
+        opening.authorizedById = adminId;
+        await opening.save();
+
+        res.json({ message: `Apertura ${status === 'authorized' ? 'autorizada' : 'denegada'} con éxito`, opening });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
     }
 };
 

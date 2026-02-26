@@ -20,7 +20,10 @@ import {
     Store,
     Clock,
     X,
-    Receipt
+    Receipt,
+    RefreshCcw,
+    AlertTriangle,
+    Save
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000/api`;
@@ -427,6 +430,141 @@ const NewSale = () => {
                     ))}
                 </div>
             </div>
+        );
+    }
+    if (cashOpening && cashOpening.status === 'pending') {
+        return (
+            <div className="container" style={{ textAlign: 'center', padding: '5rem 0' }}>
+                <div className="glass-card" style={{ padding: '3rem', maxWidth: '500px', margin: '0 auto' }}>
+                    <div className="pulse-animation" style={{ marginBottom: '2rem' }}>
+                        <Clock size={64} color="var(--primary)" />
+                    </div>
+                    <h2 style={{ marginBottom: '1rem' }}>Esperando Autorización</h2>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+                        Tu solicitud de apertura de caja ha sido enviada. <br />
+                        Un administrador debe autorizar tu sesión para comenzar a vender.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0.8rem', fontSize: '0.85rem', textAlign: 'left' }}>
+                            <p style={{ margin: '0 0 0.5rem 0', opacity: 0.6 }}>Detalles de sesión:</p>
+                            <p style={{ margin: 0 }}><strong>Usuario:</strong> {user.name}</p>
+                            <p style={{ margin: 0 }}><strong>Día:</strong> {new Date(selectedDay.date + 'T00:00:00').toLocaleDateString()}</p>
+                            <p style={{ margin: 0 }}><strong>Hora:</strong> {new Date(cashOpening.openingTime).toLocaleTimeString()}</p>
+                        </div>
+                        <button
+                            onClick={() => checkCashOpening(selectedDay.id)}
+                            className="btn btn-primary"
+                            style={{ width: '100%', padding: '1rem' }}
+                        >
+                            <RefreshCcw size={18} style={{ marginRight: '0.5rem' }} /> Reintentar / Actualizar
+                        </button>
+                        <button
+                            onClick={handleReset}
+                            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem' }}
+                        >
+                            Cancelar y volver
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!cashOpening || cashOpening.status !== 'authorized') {
+        return (
+            <>
+                <div className="container" style={{ textAlign: 'center', padding: '5rem 0' }}>
+                    <div className="glass-card" style={{ padding: '3rem', maxWidth: '500px', margin: '0 auto' }}>
+                        <AlertTriangle size={64} color="#f59e0b" style={{ marginBottom: '2rem' }} />
+                        <h2 style={{ marginBottom: '1rem' }}>Caja no Iniciada</h2>
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+                            Es necesario abrir la caja para poder realizar ventas en este día.
+                        </p>
+                        <button onClick={() => setShowOpeningModal(true)} className="btn btn-primary" style={{ width: '100%', padding: '1rem' }}>
+                            <Save size={18} style={{ marginRight: '0.5rem' }} /> Abrir Caja Ahora
+                        </button>
+                        <button onClick={handleReset} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem', marginTop: '1.5rem' }}>
+                            Volver a la selección
+                        </button>
+                    </div>
+                </div>
+
+                {/* OPEN CASH MODAL */}
+                {showOpeningModal && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 6000, padding: '1rem' }}>
+                        <div className="glass-card" style={{ padding: '2.5rem', width: '100%', maxWidth: '450px', textAlign: 'center' }}>
+                            <div style={{ background: 'rgba(99, 102, 241, 0.1)', width: '70px', height: '70px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                                <Store size={35} color="var(--primary)" />
+                            </div>
+                            <h2 style={{ marginBottom: '0.5rem' }}>Apertura de Caja</h2>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '2rem' }}>
+                                Bienvenido, <span style={{ color: 'white', fontWeight: 'bold' }}>{user?.name}</span>. <br />
+                                Por favor, indica el monto de efectivo inicial para hoy.
+                            </p>
+
+                            <div style={{ marginBottom: '2rem', textAlign: 'left' }}>
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 'bold', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                    Efectivo Inicial (₡)
+                                </label>
+                                <input
+                                    type="text"
+                                    autoFocus
+                                    placeholder="0"
+                                    value={initialCashInput}
+                                    onChange={(e) => setInitialCashInput(formatInitialCash(e.target.value))}
+                                    style={{
+                                        width: '100%',
+                                        padding: '1.2rem',
+                                        borderRadius: '1rem',
+                                        border: '2px solid var(--glass-border)',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        color: 'white',
+                                        outline: 'none',
+                                        fontSize: '1.5rem',
+                                        fontWeight: 'bold',
+                                        textAlign: 'center'
+                                    }}
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleOpenCash}
+                                style={{
+                                    width: '100%',
+                                    padding: '1.2rem',
+                                    borderRadius: '1rem',
+                                    background: 'var(--primary)',
+                                    color: 'white',
+                                    border: 'none',
+                                    fontWeight: 'bold',
+                                    fontSize: '1.1rem',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 10px 20px rgba(99, 102, 241, 0.2)',
+                                    marginBottom: '1rem'
+                                }}
+                            >
+                                ABRIR CAJA
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowOpeningModal(false);
+                                    setInitialCashInput('');
+                                }}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    fontSize: '0.9rem',
+                                    textDecoration: 'underline'
+                                }}
+                            >
+                                Cancelar y volver
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </>
         );
     }
 
