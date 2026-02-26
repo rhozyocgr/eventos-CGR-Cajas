@@ -419,8 +419,8 @@ const NewSale = () => {
                         <div key={day.id} className="glass-card hover-glow"
                             style={{ padding: '2rem 1rem', cursor: 'pointer', textAlign: 'center' }}
                             onClick={() => handleSelectDay(day)}>
-                            <h3 style={{ color: 'var(--primary)', marginBottom: '0.5rem' }}>
-                                {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                            <h3 style={{ color: 'var(--primary)', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
+                                {new Date(day.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                             </h3>
                             <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>{day.Products?.length || 0} productos</p>
                         </div>
@@ -441,7 +441,7 @@ const NewSale = () => {
                     <div>
                         <h4 style={{ margin: 0, fontSize: '0.9rem' }}>{selectedEvent.name}</h4>
                         <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>
-                            {new Date(selectedDay.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                            {new Date(selectedDay.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </p>
                     </div>
                 </div>
