@@ -1010,19 +1010,26 @@ const NewSale = () => {
 
             {/* CLOSE CASH MODAL (SUMMARY) */}
             {showClosingModal && sessionSummary && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 6500, padding: '1rem' }}>
-                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '500px' }}>
-                        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                            <div style={{ background: 'rgba(239, 68, 68, 0.1)', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-                                <Clock size={30} color="#ef4444" />
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 6500, padding: '0.5rem' }}>
+                    <div className="glass-card" style={{ padding: '1.5rem', width: '100%', maxWidth: '550px', maxHeight: '95vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.2rem', background: 'rgba(239, 68, 68, 0.05)', padding: '1rem', borderRadius: '1rem', border: '1px solid rgba(239, 68, 68, 0.1)' }}>
+                            <div style={{ background: 'rgba(239, 68, 68, 0.1)', width: '45px', height: '45px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <Clock size={24} color="#ef4444" />
                             </div>
-                            <h2 style={{ marginBottom: '0.5rem' }}>Resumen de Cierre</h2>
-                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                Sesión de <span style={{ color: 'white' }}>{user?.name}</span>
-                            </p>
+                            <div style={{ textAlign: 'left' }}>
+                                <h2 style={{ margin: 0, fontSize: '1.3rem' }}>Resumen de Cierre</h2>
+                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>
+                                    Sesión de <span style={{ color: 'white' }}>{user?.name}</span>
+                                </p>
+                            </div>
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '0.75rem',
+                            marginBottom: '1.5rem'
+                        }}>
                             {[
                                 { label: 'Efectivo Inicial', value: cashOpening?.initialCash, color: 'var(--text-secondary)' },
                                 { label: 'Ventas en Efectivo', value: sessionSummary.totalEfectivo, color: 'white' },
@@ -1030,35 +1037,54 @@ const NewSale = () => {
                                 { label: 'Ventas Tarjeta', value: sessionSummary.totalTarjeta, color: 'white' },
                                 { label: 'Ventas Pendientes', value: sessionSummary.totalPendiente, color: '#f59e0b' }
                             ].map((item, idx) => (
-                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem', borderRadius: '0.6rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
-                                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{item.label}</span>
-                                    <span style={{ fontWeight: 'bold', color: item.color }}>₡{new Intl.NumberFormat('es-CR').format(item.value || 0)}</span>
+                                <div key={idx} style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: '0.6rem 0.8rem',
+                                    borderRadius: '0.6rem',
+                                    background: 'rgba(255,255,255,0.03)',
+                                    border: '1px solid var(--glass-border)'
+                                }}>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{item.label}</span>
+                                    <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: item.color }}>₡{new Intl.NumberFormat('es-CR').format(item.value || 0)}</span>
                                 </div>
                             ))}
 
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', borderRadius: '0.8rem', background: 'rgba(99, 102, 241, 0.1)', border: '1px solid var(--primary)', marginTop: '0.5rem' }}>
-                                <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>TOTAL VENDIDO</span>
-                                <span style={{ fontWeight: '900', fontSize: '1.2rem', color: 'var(--accent)' }}>₡{new Intl.NumberFormat('es-CR').format(sessionTotal)}</span>
+                            <div style={{
+                                gridColumn: '1 / -1',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '1rem',
+                                borderRadius: '0.8rem',
+                                background: 'rgba(99, 102, 241, 0.1)',
+                                border: '1px solid var(--primary)',
+                                marginTop: '0.2rem'
+                            }}>
+                                <span style={{ fontWeight: 'bold', color: 'var(--primary)', fontSize: '0.9rem' }}>TOTAL VENDIDO HOY</span>
+                                <span style={{ fontWeight: '900', fontSize: '1.4rem', color: 'var(--accent)' }}>₡{new Intl.NumberFormat('es-CR').format(sessionTotal)}</span>
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
                             <button
                                 onClick={() => setShowClosingModal(false)}
-                                style={{ flex: 1, padding: '1rem', borderRadius: '0.8rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', cursor: 'pointer' }}
+                                style={{ flex: 1, padding: '0.8rem', borderRadius: '0.8rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
                             >
-                                Seguir Vendiendo
+                                Volver
                             </button>
                             <button
                                 onClick={handleCloseCash}
                                 style={{
-                                    flex: 1,
-                                    padding: '1rem',
+                                    flex: 1.5,
+                                    padding: '0.8rem',
                                     borderRadius: '0.8rem',
                                     background: '#ef4444',
                                     color: 'white',
                                     border: 'none',
                                     fontWeight: 'bold',
+                                    fontSize: '0.9rem',
                                     cursor: 'pointer',
                                     boxShadow: '0 10px 20px rgba(239, 68, 68, 0.2)'
                                 }}

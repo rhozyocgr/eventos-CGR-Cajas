@@ -361,9 +361,10 @@ export const getSalesSummary = async (req, res) => {
 
 export const getCashClosings = async (req, res) => {
     try {
-        const { salesDayId } = req.query;
+        const { salesDayId, userId } = req.query;
         const where = {};
         if (salesDayId) where.SalesDayId = salesDayId;
+        if (userId) where.UserId = userId;
 
         const closings = await CashClosing.findAll({
             where,

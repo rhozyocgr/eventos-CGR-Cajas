@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart, ChevronLeft, LogOut, Calculator, Users as UsersIcon, ShieldCheck } from 'lucide-react';
+import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart, ChevronLeft, LogOut, Calculator, Users as UsersIcon, ShieldCheck, History } from 'lucide-react';
 import { useState } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -12,6 +12,7 @@ import NewSale from './pages/NewSale';
 import Cashier from './pages/Cashier';
 import Users from './pages/Users';
 import Authorizations from './pages/Authorizations';
+import MyClosings from './pages/MyClosings';
 import { version } from '../package.json';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -97,6 +98,7 @@ const MainLayout = ({ children }) => {
                     </button>
                     <NavItem to="/" icon={Home} label="Inicio" />
                     <NavItem to="/new-sale" icon={ShoppingCart} label="Vender" />
+                    <NavItem to="/my-closings" icon={History} label="Mis Cierres" />
 
                     {user?.role === 'admin' && (
                         <>
@@ -248,6 +250,7 @@ function App() {
                             <Route path="/authorizations" element={<ProtectedRoute adminOnly={true}><Authorizations /></ProtectedRoute>} />
                             <Route path="/users" element={<ProtectedRoute adminOnly={true}><Users /></ProtectedRoute>} />
                             <Route path="/new-sale" element={<ProtectedRoute><NewSale /></ProtectedRoute>} />
+                            <Route path="/my-closings" element={<ProtectedRoute><MyClosings /></ProtectedRoute>} />
                             <Route path="/login" element={<Login />} />
                         </Routes>
                     </MainLayout>
