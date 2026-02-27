@@ -1036,7 +1036,13 @@ const NewSale = () => {
                                 { label: 'Ventas en Efectivo', value: sessionSummary.totalEfectivo, color: 'white' },
                                 { label: 'Ventas SINPE', value: sessionSummary.totalSinpe, color: 'white' },
                                 { label: 'Ventas Tarjeta', value: sessionSummary.totalTarjeta, color: 'white' },
-                                { label: 'Ventas Pendientes', value: sessionSummary.totalPendiente, color: '#f59e0b' }
+                                { label: 'Ventas Pendientes', value: sessionSummary.totalPendiente, color: '#f59e0b' },
+                                {
+                                    label: 'Cierre Efectivo',
+                                    value: (Number(cashOpening?.initialCash) || 0) + (Number(sessionSummary.totalEfectivo) || 0),
+                                    color: '#10b981',
+                                    isTotal: true
+                                }
                             ].map((item, idx) => (
                                 <div key={idx} style={{
                                     display: 'flex',
@@ -1044,8 +1050,8 @@ const NewSale = () => {
                                     alignItems: 'center',
                                     padding: '0.6rem 0.8rem',
                                     borderRadius: '0.6rem',
-                                    background: 'rgba(255,255,255,0.03)',
-                                    border: '1px solid var(--glass-border)'
+                                    background: item.isTotal ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255,255,255,0.03)',
+                                    border: item.isTotal ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid var(--glass-border)'
                                 }}>
                                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{item.label}</span>
                                     <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: item.color }}>₡{new Intl.NumberFormat('es-CR').format(item.value || 0)}</span>
