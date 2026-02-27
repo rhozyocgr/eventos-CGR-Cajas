@@ -18,7 +18,7 @@ if [ -f "$ROOT_DIR/.env" ]; then
     done < "$ROOT_DIR/.env"
 fi
 
-CONTAINER_NAME="event-db"
+CONTAINER_NAME="event-db-prod"
 
 backup() {
     if [ -z "$DB_NAME" ]; then
