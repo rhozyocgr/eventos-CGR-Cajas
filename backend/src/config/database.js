@@ -1,7 +1,7 @@
 import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
 
-dotenv.config({ path: '../.env' });
+dotenv.config(); // In production, variables are provided by Docker
 
 const sequelize = new Sequelize(
   process.env.DB_NAME,
