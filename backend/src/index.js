@@ -38,10 +38,27 @@ app.get('/api/health', (req, res) => {
 // Routes will be added here...
 // For now, let's add a sync route or just sync on start
 const startServer = async () => {
-    try {
-        await sequelize.authenticate();
-        console.log('Database connected successfully.');
+    let connected = false;
+    let attempts = 0;
+    const maxAttempts = 10;
 
+    while (!connected && attempts < maxAttempts) {
+        try {
+            attempts++;
+            await sequelize.authenticate();
+            connected = true;
+            console.log('Database connected successfully.');
+        } catch (error) {
+            console.error(`Database connection attempt ${attempts} failed. Retrying in 5 seconds...`);
+            if (attempts >= maxAttempts) {
+                console.error('Max connection attempts reached. Exiting.');
+                process.exit(1);
+            }
+            await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+    }
+
+    try {
         // Sync models
         await sequelize.sync({ alter: false });
         console.log('Models synced.');
@@ -68,7 +85,8 @@ const startServer = async () => {
             console.log(`Server running on port ${PORT}`);
         });
     } catch (error) {
-        console.error('Unable to start server:', error);
+        console.error('Unable to finalize server startup:', error);
+        process.exit(1);
     }
 };
 
