@@ -133,13 +133,26 @@ const NewSale = () => {
             setLoading(false);
         }
     };
+    useEffect(() => {
+        let interval;
+        if (selectedDay && cashOpening?.status === 'pending') {
+            interval = setInterval(() => {
+                checkCashOpening(selectedDay.id, true);
+            }, 3000); // Verificar cada 3 segundos
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [cashOpening?.status, selectedDay]);
 
-    const checkCashOpening = async (dayId) => {
+    const checkCashOpening = async (dayId, silent = false) => {
         if (!user || !dayId) return;
-        // Resetear estados locales antes de verificar
-        setCashOpening(null);
-        setSessionTotal(0);
-        setSessionSummary(null);
+
+        if (!silent) {
+            setCashOpening(null);
+            setSessionTotal(0);
+            setSessionSummary(null);
+        }
 
         try {
             const res = await axios.get(`${API_URL}/sales/active-opening?salesDayId=${dayId}&userId=${user.id}`);
@@ -995,83 +1008,6 @@ const NewSale = () => {
                 </div>
             )}
 
-            {/* OPEN CASH MODAL */}
-            {showOpeningModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 6000, padding: '1rem' }}>
-                    <div className="glass-card" style={{ padding: '2.5rem', width: '100%', maxWidth: '450px', textAlign: 'center' }}>
-                        <div style={{ background: 'rgba(99, 102, 241, 0.1)', width: '70px', height: '70px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
-                            <Store size={35} color="var(--primary)" />
-                        </div>
-                        <h2 style={{ marginBottom: '0.5rem' }}>Apertura de Caja</h2>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '2rem' }}>
-                            Bienvenido, <span style={{ color: 'white', fontWeight: 'bold' }}>{user?.name}</span>. <br />
-                            Por favor, indica el monto de efectivo inicial para hoy.
-                        </p>
-
-                        <div style={{ marginBottom: '2rem', textAlign: 'left' }}>
-                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 'bold', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                Efectivo Inicial (₡)
-                            </label>
-                            <input
-                                type="text"
-                                autoFocus
-                                placeholder="0"
-                                value={initialCashInput}
-                                onChange={(e) => setInitialCashInput(formatInitialCash(e.target.value))}
-                                style={{
-                                    width: '100%',
-                                    padding: '1.2rem',
-                                    borderRadius: '1rem',
-                                    border: '2px solid var(--glass-border)',
-                                    background: 'rgba(255,255,255,0.05)',
-                                    color: 'white',
-                                    outline: 'none',
-                                    fontSize: '1.5rem',
-                                    fontWeight: 'bold',
-                                    textAlign: 'center'
-                                }}
-                            />
-                        </div>
-
-                        <button
-                            onClick={handleOpenCash}
-                            style={{
-                                width: '100%',
-                                padding: '1.2rem',
-                                borderRadius: '1rem',
-                                background: 'var(--primary)',
-                                color: 'white',
-                                border: 'none',
-                                fontWeight: 'bold',
-                                fontSize: '1.1rem',
-                                cursor: 'pointer',
-                                boxShadow: '0 10px 20px rgba(99, 102, 241, 0.2)',
-                                marginBottom: '1rem'
-                            }}
-                        >
-                            ABRIR CAJA
-                        </button>
-                        <button
-                            onClick={() => {
-                                setShowOpeningModal(false);
-                                setSelectedDay(null);
-                                localStorage.removeItem('selectedDayId');
-                                setInitialCashInput('');
-                            }}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'var(--text-secondary)',
-                                cursor: 'pointer',
-                                fontSize: '0.9rem',
-                                textDecoration: 'underline'
-                            }}
-                        >
-                            Cancelar y volver
-                        </button>
-                    </div>
-                </div>
-            )}
 
             {/* CLOSE CASH MODAL (SUMMARY) */}
             {showClosingModal && sessionSummary && (
