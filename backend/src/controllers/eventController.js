@@ -1,4 +1,4 @@
-import { Event, Product, SalesDay } from '../models/index.js';
+import { Event, Product, SalesDay, Transaction, Sale, CashClosing, CashOpening } from '../models/index.js';
 
 const getDates = (startDate, endDate) => {
     const dates = [];
@@ -110,7 +110,35 @@ export const updateDayProducts = async (req, res) => {
 export const deleteEvent = async (req, res) => {
     try {
         const { id } = req.params;
-        await Event.destroy({ where: { id } });
+        const currentEvent = await Event.findByPk(id);
+        if (!currentEvent) {
+            return res.status(404).json({ error: 'Event not found' });
+        }
+
+        const days = await SalesDay.findAll({ where: { EventId: id } });
+        const dayIds = days.map(d => d.id);
+
+        if (dayIds.length > 0) {
+            const transactions = await Transaction.findAll({ where: { SalesDayId: dayIds } });
+            const txIds = transactions.map(t => t.id);
+
+            if (txIds.length > 0) {
+                await Sale.destroy({ where: { TransactionId: txIds } });
+            }
+
+            await Transaction.destroy({ where: { SalesDayId: dayIds } });
+            await CashClosing.destroy({ where: { SalesDayId: dayIds } });
+            await CashOpening.destroy({ where: { SalesDayId: dayIds } });
+
+            for (const day of days) {
+                await day.setProducts([]);
+                await day.destroy();
+            }
+        }
+
+        await currentEvent.setProducts([]);
+        await currentEvent.destroy();
+
         res.status(204).send();
     } catch (error) {
         res.status(500).json({ error: error.message });
