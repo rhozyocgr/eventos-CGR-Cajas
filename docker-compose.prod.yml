@@ -1,0 +1,52 @@
+services:
+  db:
+    image: mariadb:11.2
+    container_name: event-db-prod
+    restart: always
+    env_file: .env
+    environment:
+      - TZ=America/Costa_Rica
+    volumes:
+      - db_prod_data:/var/lib/mysql
+    networks:
+      - event-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: event-backend-prod
+    restart: always
+    env_file: .env
+    environment:
+      - DB_HOST=db
+      - TZ=America/Costa_Rica
+    depends_on:
+      - db
+    networks:
+      - event-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        - VITE_API_URL=/api
+    container_name: event-frontend-prod
+    restart: always
+    ports:
+      - "80:80"
+    environment:
+      - TZ=America/Costa_Rica
+    depends_on:
+      - backend
+    networks:
+      - event-network
+
+volumes:
+  db_prod_data:
+
+
+networks:
+  event-network:
+    driver: bridge

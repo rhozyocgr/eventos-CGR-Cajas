@@ -31,6 +31,16 @@ Para que el login funcione, debes:
    - **Frontend**: [http://localhost:5173](http://localhost:5173)
    - **Backend API**: [http://localhost:3000/api/health](http://localhost:3000/api/health)
 
+### Producción
+Para desplegar en un entorno de producción (sin recarga en caliente y optimizado):
+1. Asegúrate de que el archivo `.env` tenga las credenciales correctas.
+2. Ejecuta:
+   ```powershell
+   docker-compose -f docker-compose.prod.yml up --build -d
+   ```
+3. Accede a través del puerto 80 (o el configurado en tu balanceador de carga):
+   - **Frontend/App**: [http://localhost](http://localhost)
+
 ## Características
 - Interface **Mobile-First** responsiva.
 - Diseño **Glassmorphism** moderno con efectos de desenfosque y gradientes.
