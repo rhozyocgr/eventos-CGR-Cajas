@@ -14,9 +14,9 @@ export const googleLogin = async (req, res) => {
         });
 
         const { email, name, picture } = ticket.getPayload();
-        const adminEmail = process.env.ADMIN_EMAIL ? process.env.ADMIN_EMAIL.trim().toLowerCase() : null;
+        const adminEmails = process.env.ADMIN_EMAIL ? process.env.ADMIN_EMAIL.split(',').map(e => e.trim().toLowerCase()) : [];
         const userEmail = email.trim().toLowerCase();
-        const isActuallyAdmin = adminEmail && userEmail === adminEmail;
+        const isActuallyAdmin = adminEmails.includes(userEmail);
 
         // Find or create user
         let user = await User.findOne({ where: { email } });

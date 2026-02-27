@@ -566,7 +566,7 @@ const Events = () => {
                                 <div key={day.id} className="glass-card" style={{ padding: '1.2rem', background: 'rgba(255,255,255,0.02)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                         <h4 style={{ margin: 0, color: 'var(--primary)' }}>
-                                            {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                            {new Date(day.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                                         </h4>
                                         <button
                                             onClick={() => handleOpenDayEdit(day)}
@@ -634,7 +634,7 @@ const Events = () => {
                     <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '800px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
                             <div>
-                                <h3 style={{ margin: 0 }}>Gestionar Productos - {new Date(editingDay?.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</h3>
+                                <h3 style={{ margin: 0 }}>Gestionar Productos - {new Date(editingDay?.date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</h3>
                                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Selecciona los productos de este día</p>
                             </div>
                             <button onClick={() => setIsDayEditingModalOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>

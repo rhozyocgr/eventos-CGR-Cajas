@@ -67,11 +67,20 @@ const CashClosing = sequelize.define('CashClosing', {
 const CashOpening = sequelize.define('CashOpening', {
     initialCash: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     openingTime: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    closingTime: { type: DataTypes.DATE },
     status: {
         type: DataTypes.ENUM('pending', 'authorized', 'denied', 'closed'),
         defaultValue: 'pending'
     },
     authorizedById: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'Users',
+            key: 'id'
+        }
+    },
+    closedById: {
         type: DataTypes.INTEGER,
         allowNull: true,
         references: {

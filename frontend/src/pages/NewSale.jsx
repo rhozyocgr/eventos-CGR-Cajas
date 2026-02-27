@@ -189,7 +189,9 @@ const NewSale = () => {
         if (!cashOpening) return;
         try {
             setPaymentLoading(true);
-            await axios.put(`${API_URL}/sales/close-cash/${cashOpening.id}`);
+            await axios.put(`${API_URL}/sales/close-cash/${cashOpening.id}`, {
+                userId: user.id
+            });
             toast.success('Caja cerrada con éxito');
             setCashOpening(null);
             setShowClosingModal(false);
@@ -399,7 +401,7 @@ const NewSale = () => {
                             <div style={{ flex: 1 }}>
                                 <h3 style={{ margin: 0 }}>{ev.name}</h3>
                                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
-                                    {new Date(ev.startDate).toLocaleDateString()}
+                                    {new Date(ev.startDate.split('T')[0] + 'T00:00:00').toLocaleDateString()}
                                 </p>
                             </div>
                             <ChevronRight size={24} color="var(--glass-border)" />

@@ -7,6 +7,7 @@ import productRoutes from './routes/productRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import saleRoutes from './routes/saleRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 import { authenticate } from './middleware/authMiddleware.js';
 
 const app = express();
@@ -27,6 +28,7 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/sales', saleRoutes);
+app.use('/api/users', userRoutes);
 
 // Basic test route
 app.get('/api/health', (req, res) => {

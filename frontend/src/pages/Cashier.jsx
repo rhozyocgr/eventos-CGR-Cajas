@@ -24,7 +24,9 @@ import {
     Trash2,
     CheckCircle,
     AlertTriangle,
-    ShieldCheck
+    ShieldCheck,
+    Search,
+    Filter
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -54,6 +56,8 @@ const Cashier = () => {
     const [showFinalConfirmModal, setShowFinalConfirmModal] = useState(false);
     const [pendingOpenings, setPendingOpenings] = useState([]);
     const [activeTab, setActiveTab] = useState('summary'); // 'summary' | 'receivables' | 'authorizations'
+    const [closingSearch, setClosingSearch] = useState('');
+    const [filterType, setFilterType] = useState('all'); // 'all' | 'partial' | 'final'
 
     const deleteReasons = ['Error de digitación', 'Cliente se arrepintió', 'Cambio de método de pago', 'Duplicado', 'Otro'];
 
@@ -505,7 +509,7 @@ const Cashier = () => {
                             <div style={{ flex: 1 }}>
                                 <h3 style={{ margin: 0 }}>{ev.name}</h3>
                                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
-                                    {new Date(ev.startDate).toLocaleDateString()} - {new Date(ev.endDate).toLocaleDateString()}
+                                    {new Date(ev.startDate.split('T')[0] + 'T00:00:00').toLocaleDateString()} - {new Date(ev.endDate.split('T')[0] + 'T00:00:00').toLocaleDateString()}
                                 </p>
                             </div>
                         </div>
@@ -528,7 +532,7 @@ const Cashier = () => {
                             style={{ padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center' }}
                             onClick={() => handleSelectDay(day)}>
                             <h3 style={{ color: 'var(--primary)', marginBottom: '0.5rem' }}>
-                                {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                {new Date(day.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                             </h3>
                             <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>Haga clic para ver resumen</p>
                         </div>
@@ -547,7 +551,7 @@ const Cashier = () => {
                     </button>
                     <h1 style={{ marginBottom: '0.2rem' }}>Cierre de Caja</h1>
                     <p style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Calendar size={16} /> {new Date(selectedDay.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        <Calendar size={16} /> {new Date(selectedDay.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                         <span style={{ color: 'var(--glass-border)' }}>|</span>
                         <Users size={16} /> Usuario: {user?.name || 'Administrador'}
                     </p>
@@ -991,9 +995,55 @@ const Cashier = () => {
             {/* Closings History - Alway visible if closings exist */}
             {closings.length > 0 && (
                 <div style={{ marginTop: '2rem' }}>
-                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                        <Clock size={20} color="var(--primary)" /> Historial de Cortes Registrados
-                    </h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '1rem', flexWrap: 'wrap' }}>
+                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                            <Clock size={20} color="var(--primary)" /> Historial de Cortes Registrados
+                        </h3>
+
+                        <div style={{ display: 'flex', gap: '0.8rem', flex: 1, maxWidth: '600px' }}>
+                            <div style={{ position: 'relative', flex: 1 }}>
+                                <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                                <input
+                                    type="text"
+                                    placeholder="Buscar por usuario o correo..."
+                                    value={closingSearch}
+                                    onChange={(e) => setClosingSearch(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.7rem 0.7rem 0.7rem 2.8rem',
+                                        borderRadius: '2rem',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        border: '1px solid var(--glass-border)',
+                                        color: 'white',
+                                        outline: 'none',
+                                        fontSize: '0.9rem'
+                                    }}
+                                />
+                            </div>
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                <Filter size={16} style={{ position: 'absolute', left: '1rem', color: 'var(--text-secondary)', pointerEvents: 'none' }} />
+                                <select
+                                    value={filterType}
+                                    onChange={(e) => setFilterType(e.target.value)}
+                                    style={{
+                                        padding: '0.7rem 1.2rem 0.7rem 2.5rem',
+                                        borderRadius: '2rem',
+                                        background: 'rgba(30, 41, 59, 1)',
+                                        border: '1px solid var(--glass-border)',
+                                        color: 'white',
+                                        outline: 'none',
+                                        fontSize: '0.9rem',
+                                        cursor: 'pointer',
+                                        appearance: 'none'
+                                    }}
+                                >
+                                    <option value="all">Todos los cortes</option>
+                                    <option value="partial">Cortes Parciales</option>
+                                    <option value="final">Cortes Definitivos</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                     <div className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead style={{ background: 'rgba(255,255,255,0.03)' }}>
@@ -1006,66 +1056,79 @@ const Cashier = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {closings.map((c, i) => {
-                                    const details = typeof c.details === 'string' ? JSON.parse(c.details) : c.details;
-                                    const totalGanancia = details?.totalGananciaGrupos || 0;
-                                    const totalComisiones = details?.totalComisiones || 0;
-                                    const totalLiquidacion = parseFloat(c.totalGeneral) - totalComisiones - totalGanancia;
+                                {closings
+                                    .filter(c => {
+                                        const searchLower = closingSearch.toLowerCase();
+                                        const matchesSearch = (
+                                            c.User?.name?.toLowerCase().includes(searchLower) ||
+                                            c.User?.email?.toLowerCase().includes(searchLower) ||
+                                            (c.isFinal && 'corte definitivo'.includes(searchLower))
+                                        );
 
-                                    return (
-                                        <tr key={c.id}
-                                            style={{
-                                                borderTop: '1px solid var(--glass-border)',
-                                                cursor: 'pointer',
-                                                background: c.isFinal ? 'rgba(16, 185, 129, 0.05)' : 'transparent',
-                                                borderLeft: c.isFinal ? '4px solid #10b981' : 'none'
-                                            }}
-                                            className="hover-glow"
-                                            onClick={() => setViewingClosing(c)}
-                                        >
-                                            <td style={{ padding: '1rem 1.5rem' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                    <div style={{
-                                                        width: '32px',
-                                                        height: '32px',
-                                                        borderRadius: '50%',
-                                                        background: c.isFinal ? '#10b981' : 'var(--primary)',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        fontSize: '0.8rem',
-                                                        fontWeight: 'bold'
-                                                    }}>
-                                                        {c.isFinal ? '★' : (c.User?.name?.charAt(0) || 'U')}
-                                                    </div>
-                                                    <div>
-                                                        <div style={{ fontWeight: 'bold', color: c.isFinal ? '#10b981' : 'inherit' }}>
-                                                            {c.isFinal ? 'CORTE DEFINITIVO' : (c.User?.name || 'Sistema')}
+                                        if (filterType === 'partial') return matchesSearch && !c.isFinal;
+                                        if (filterType === 'final') return matchesSearch && c.isFinal;
+                                        return matchesSearch;
+                                    })
+                                    .map((c, i) => {
+                                        const details = typeof c.details === 'string' ? JSON.parse(c.details) : c.details;
+                                        const totalGanancia = details?.totalGananciaGrupos || 0;
+                                        const totalComisiones = details?.totalComisiones || 0;
+                                        const totalLiquidacion = parseFloat(c.totalGeneral) - totalComisiones - totalGanancia;
+
+                                        return (
+                                            <tr key={c.id}
+                                                style={{
+                                                    borderTop: '1px solid var(--glass-border)',
+                                                    cursor: 'pointer',
+                                                    background: c.isFinal ? 'rgba(16, 185, 129, 0.05)' : 'transparent',
+                                                    borderLeft: c.isFinal ? '4px solid #10b981' : 'none'
+                                                }}
+                                                className="hover-glow"
+                                                onClick={() => setViewingClosing(c)}
+                                            >
+                                                <td style={{ padding: '1rem 1.5rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                        <div style={{
+                                                            width: '32px',
+                                                            height: '32px',
+                                                            borderRadius: '50%',
+                                                            background: c.isFinal ? '#10b981' : 'var(--primary)',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 'bold'
+                                                        }}>
+                                                            {c.isFinal ? '★' : (c.User?.name?.charAt(0) || 'U')}
                                                         </div>
-                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                                            {c.isFinal ? 'Consolidación de día' : c.User?.email}
+                                                        <div>
+                                                            <div style={{ fontWeight: 'bold', color: c.isFinal ? '#10b981' : 'inherit' }}>
+                                                                {c.isFinal ? 'CORTE DEFINITIVO' : (c.User?.name || 'Sistema')}
+                                                            </div>
+                                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                                                {c.isFinal ? 'Consolidación de día' : c.User?.email}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '1rem 1.5rem' }}>
-                                                <div style={{ fontWeight: '500' }}>{new Date(c.timestamp).toLocaleDateString()}</div>
-                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                                    {new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--accent)' }}>
-                                                ₡{new Intl.NumberFormat('es-CR').format(c.totalGeneral)}
-                                            </td>
-                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: 'bold' }}>
-                                                ₡{new Intl.NumberFormat('es-CR').format(totalLiquidacion)}
-                                            </td>
-                                            <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--primary)' }}>
-                                                ₡{new Intl.NumberFormat('es-CR').format(totalGanancia)}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                                </td>
+                                                <td style={{ padding: '1rem 1.5rem' }}>
+                                                    <div style={{ fontWeight: '500' }}>{new Date(c.timestamp).toLocaleDateString()}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                                        {new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--accent)' }}>
+                                                    ₡{new Intl.NumberFormat('es-CR').format(c.totalGeneral)}
+                                                </td>
+                                                <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: 'bold' }}>
+                                                    ₡{new Intl.NumberFormat('es-CR').format(totalLiquidacion)}
+                                                </td>
+                                                <td style={{ padding: '1rem 1.5rem', textAlign: 'right', fontWeight: 'bold', color: 'var(--primary)' }}>
+                                                    ₡{new Intl.NumberFormat('es-CR').format(totalGanancia)}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                             </tbody>
                         </table>
                     </div>
@@ -1073,357 +1136,363 @@ const Cashier = () => {
             )}
 
             {/* Historical Detail Overlay */}
-            {viewingClosing && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0,0,0,0.85)',
-                    backdropFilter: 'blur(10px)',
-                    zIndex: 2000,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '2rem'
-                }} onClick={() => setViewingClosing(null)}>
+            {
+                viewingClosing && (
                     <div style={{
-                        width: '100%',
-                        maxWidth: '1200px',
-                        maxHeight: '90vh',
-                        overflowY: 'auto',
-                        background: 'var(--bg-dark)',
-                        borderRadius: '1.5rem',
-                        border: '1px solid var(--glass-border)',
-                        padding: '2.5rem',
-                        position: 'relative',
-                        boxShadow: '0 0 50px rgba(99, 102, 241, 0.2)'
-                    }} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-                            <div>
-                                <h2 style={{ color: 'var(--primary)', marginBottom: '0.5rem' }}>Detalle de Corte Histórico</h2>
-                                <p style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <Clock size={16} /> Registrado el {new Date(viewingClosing.timestamp).toLocaleString()}
-                                    <span style={{ color: 'var(--glass-border)' }}>|</span>
-                                    <Users size={16} /> Por: {viewingClosing.User?.name}
-                                </p>
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.85)',
+                        backdropFilter: 'blur(10px)',
+                        zIndex: 2000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '2rem'
+                    }} onClick={() => setViewingClosing(null)}>
+                        <div style={{
+                            width: '100%',
+                            maxWidth: '1200px',
+                            maxHeight: '90vh',
+                            overflowY: 'auto',
+                            background: 'var(--bg-dark)',
+                            borderRadius: '1.5rem',
+                            border: '1px solid var(--glass-border)',
+                            padding: '2.5rem',
+                            position: 'relative',
+                            boxShadow: '0 0 50px rgba(99, 102, 241, 0.2)'
+                        }} onClick={e => e.stopPropagation()}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+                                <div>
+                                    <h2 style={{ color: 'var(--primary)', marginBottom: '0.5rem' }}>Detalle de Corte Histórico</h2>
+                                    <p style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Clock size={16} /> Registrado el {new Date(viewingClosing.timestamp).toLocaleString()}
+                                        <span style={{ color: 'var(--glass-border)' }}>|</span>
+                                        <Users size={16} /> Por: {viewingClosing.User?.name}
+                                    </p>
+                                </div>
+                                <button className="btn" onClick={() => setViewingClosing(null)} style={{
+                                    background: 'rgba(255, 255, 255, 0.1)',
+                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                    color: 'white'
+                                }}>
+                                    <ArrowLeft size={18} /> Cerrar
+                                </button>
                             </div>
-                            <button className="btn" onClick={() => setViewingClosing(null)} style={{
-                                background: 'rgba(255, 255, 255, 0.1)',
-                                border: '1px solid rgba(255, 255, 255, 0.2)',
-                                color: 'white'
-                            }}>
-                                <ArrowLeft size={18} /> Cerrar
-                            </button>
-                        </div>
 
-                        <SummaryView summary={viewingClosing.details} />
+                            <SummaryView summary={viewingClosing.details} />
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
             {/* MODAL DE VENTAS PENDIENTES */}
-            {showPendingModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4000, padding: '1rem' }}>
-                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                                <Clock size={24} color="#f59e0b" /> Ventas Pendientes
-                            </h2>
-                            <button onClick={() => setShowPendingModal(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={24} /></button>
-                        </div>
+            {
+                showPendingModal && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4000, padding: '1rem' }}>
+                        <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                    <Clock size={24} color="#f59e0b" /> Ventas Pendientes
+                                </h2>
+                                <button onClick={() => setShowPendingModal(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={24} /></button>
+                            </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            {pendingSales.map(transaction => (
-                                <div key={transaction.id} className="glass-card" style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                        <div style={{ display: 'flex', gap: '1rem' }}>
-                                            <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '0.8rem', borderRadius: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <Receipt size={24} color="#f59e0b" />
-                                            </div>
-                                            <div>
-                                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: 'white' }}>Transacción #{transaction.id}</h3>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.3rem' }}>
-                                                    {transaction.observation && (
-                                                        <span style={{ color: '#f59e0b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                                            📝 {transaction.observation}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                {pendingSales.map(transaction => (
+                                    <div key={transaction.id} className="glass-card" style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                                <div style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '0.8rem', borderRadius: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <Receipt size={24} color="#f59e0b" />
+                                                </div>
+                                                <div>
+                                                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: 'white' }}>Transacción #{transaction.id}</h3>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.3rem' }}>
+                                                        {transaction.observation && (
+                                                            <span style={{ color: '#f59e0b', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                                📝 {transaction.observation}
+                                                            </span>
+                                                        )}
+                                                        <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>
+                                                            {new Date(transaction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
-                                                    )}
-                                                    <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>
-                                                        {new Date(transaction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--accent)', marginBottom: '0.8rem' }}>
+                                                    ₡{new Intl.NumberFormat('es-CR').format(transaction.total)}
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.8rem' }}>
+                                                    <button
+                                                        onClick={() => handlePrintReceipt(transaction)}
+                                                        style={{
+                                                            padding: '0.6rem',
+                                                            borderRadius: '0.6rem',
+                                                            background: 'rgba(255, 255, 255, 0.05)',
+                                                            color: 'white',
+                                                            border: '1px solid var(--glass-border)',
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            title: 'Imprimir Justificante'
+                                                        }}
+                                                    >
+                                                        <Printer size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeletingTransaction(transaction)}
+                                                        style={{
+                                                            padding: '0.6rem 0.8rem',
+                                                            borderRadius: '0.6rem',
+                                                            background: 'rgba(239, 68, 68, 0.1)',
+                                                            color: '#ef4444',
+                                                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                                                            cursor: 'pointer',
+                                                            fontWeight: 'bold',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.4rem',
+                                                            fontSize: '0.85rem'
+                                                        }}
+                                                    >
+                                                        <Trash2 size={16} /> Eliminar
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setSelectedPendingSale(transaction)}
+                                                        style={{
+                                                            flex: 1,
+                                                            padding: '0.6rem 1rem',
+                                                            borderRadius: '0.6rem',
+                                                            background: '#6366f1',
+                                                            color: 'white',
+                                                            border: 'none',
+                                                            cursor: 'pointer',
+                                                            fontWeight: 'bold',
+                                                            fontSize: '0.9rem',
+                                                            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+                                                        }}
+                                                    >
+                                                        Cobrar
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--accent)', marginBottom: '0.8rem' }}>
-                                                ₡{new Intl.NumberFormat('es-CR').format(transaction.total)}
+
+                                        <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '0.8rem', padding: '1rem' }}>
+                                            <p style={{ margin: '0 0 0.8rem 0', fontSize: '0.7rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>DETALLE DE PRODUCTOS:</p>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                                {transaction.Sales?.map(sale => (
+                                                    <div key={sale.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem' }}>
+                                                        <span style={{ color: 'white' }}>{sale.Product?.name} <span style={{ opacity: 0.5, marginLeft: '0.3rem' }}>x{sale.quantity}</span></span>
+                                                        <span style={{ fontWeight: 'bold', color: 'white' }}>₡{new Intl.NumberFormat('es-CR').format(sale.total)}</span>
+                                                    </div>
+                                                ))}
                                             </div>
-                                            <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.8rem' }}>
+                                        </div>
+                                    </div>
+                                ))}
+                                {pendingSales.length === 0 && (
+                                    <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.5 }}>
+                                        <Clock size={48} style={{ marginBottom: '1rem', margin: '0 auto' }} />
+                                        <p>No hay ventas pendientes de pago.</p>
+                                    </div>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => setShowPendingModal(false)}
+                                style={{ width: '100%', marginTop: '2rem', padding: '1rem', borderRadius: '0.8rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', cursor: 'pointer' }}
+                            >
+                                Listo
+                            </button>
+
+                            {/* Delete confirmation sub-modal */}
+                            {deletingTransaction && (
+                                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000, padding: '1rem' }}>
+                                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+                                        <Trash2 size={40} color="#ef4444" style={{ marginBottom: '1rem' }} />
+                                        <h3 style={{ marginBottom: '0.5rem' }}>¿Eliminar Pendiente?</h3>
+                                        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+                                            Esta acción no se puede deshacer. Selecciona un motivo:
+                                        </p>
+
+                                        <select
+                                            value={deleteReason}
+                                            onChange={(e) => setDeleteReason(e.target.value)}
+                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--glass-border)', outline: 'none', marginBottom: '1.5rem', fontSize: '1rem' }}
+                                        >
+                                            <option value="" style={{ background: '#1e293b' }}>-- Seleccionar motivo --</option>
+                                            {deleteReasons.map(r => (
+                                                <option key={r} value={r} style={{ background: '#1e293b' }}>{r}</option>
+                                            ))}
+                                        </select>
+
+                                        <div style={{ display: 'flex', gap: '1rem' }}>
+                                            <button
+                                                onClick={() => {
+                                                    setDeletingTransaction(null);
+                                                    setDeleteReason('');
+                                                }}
+                                                style={{ flex: 1, padding: '0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', cursor: 'pointer' }}
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                disabled={!deleteReason || processingPayment}
+                                                onClick={handleDeletePending}
+                                                style={{ flex: 1, padding: '0.8rem', borderRadius: '0.5rem', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold', opacity: (!deleteReason || processingPayment) ? 0.5 : 1 }}
+                                            >
+                                                Eliminar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Payment Selection Sub-modal */}
+                            {selectedPendingSale && (
+                                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000, padding: '1rem' }}>
+                                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '500px' }}>
+                                        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                                            <h2 style={{ marginBottom: '0.5rem' }}>Cobrar Transacción #{selectedPendingSale.id}</h2>
+                                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                                Total a cobrar: <span style={{ color: 'var(--accent)', fontWeight: 'bold', fontSize: '1.2rem' }}>₡{new Intl.NumberFormat('es-CR').format(selectedPendingSale.total)}</span>
+                                            </p>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gap: '1rem' }}>
+                                            {paymentTypes.filter(t => t.name.toLowerCase() !== 'pendiente').map(type => (
                                                 <button
-                                                    onClick={() => handlePrintReceipt(transaction)}
+                                                    key={type.id}
+                                                    disabled={processingPayment}
+                                                    onClick={() => handleUpdatePayment(selectedPendingSale.id, type.id)}
+                                                    className="glass-card hover-glow"
                                                     style={{
-                                                        padding: '0.6rem',
-                                                        borderRadius: '0.6rem',
-                                                        background: 'rgba(255, 255, 255, 0.05)',
-                                                        color: 'white',
-                                                        border: '1px solid var(--glass-border)',
+                                                        padding: '1.2rem',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '1.5rem',
                                                         cursor: 'pointer',
+                                                        width: '100%',
+                                                        border: '1px solid var(--glass-border)',
+                                                        background: 'rgba(255,255,255,0.03)',
+                                                        color: 'white',
+                                                        transition: 'all 0.2s',
+                                                        opacity: processingPayment ? 0.5 : 1
+                                                    }}
+                                                >
+                                                    <div style={{
+                                                        width: '50px',
+                                                        height: '50px',
+                                                        borderRadius: '1rem',
+                                                        background: 'rgba(255,255,255,0.05)',
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
-                                                        title: 'Imprimir Justificante'
-                                                    }}
-                                                >
-                                                    <Printer size={18} />
+                                                        color: 'var(--primary)'
+                                                    }}>
+                                                        {getPaymentIcon(type.name)}
+                                                    </div>
+                                                    <div style={{ textAlign: 'left' }}>
+                                                        <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.1rem' }}>{type.name}</p>
+                                                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Confirmar pago en {type.name}</p>
+                                                    </div>
                                                 </button>
-                                                <button
-                                                    onClick={() => setDeletingTransaction(transaction)}
-                                                    style={{
-                                                        padding: '0.6rem 0.8rem',
-                                                        borderRadius: '0.6rem',
-                                                        background: 'rgba(239, 68, 68, 0.1)',
-                                                        color: '#ef4444',
-                                                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                                                        cursor: 'pointer',
-                                                        fontWeight: 'bold',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '0.4rem',
-                                                        fontSize: '0.85rem'
-                                                    }}
-                                                >
-                                                    <Trash2 size={16} /> Eliminar
-                                                </button>
-                                                <button
-                                                    onClick={() => setSelectedPendingSale(transaction)}
-                                                    style={{
-                                                        flex: 1,
-                                                        padding: '0.6rem 1rem',
-                                                        borderRadius: '0.6rem',
-                                                        background: '#6366f1',
-                                                        color: 'white',
-                                                        border: 'none',
-                                                        cursor: 'pointer',
-                                                        fontWeight: 'bold',
-                                                        fontSize: '0.9rem',
-                                                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
-                                                    }}
-                                                >
-                                                    Cobrar
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '0.8rem', padding: '1rem' }}>
-                                        <p style={{ margin: '0 0 0.8rem 0', fontSize: '0.7rem', fontWeight: 'bold', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>DETALLE DE PRODUCTOS:</p>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                            {transaction.Sales?.map(sale => (
-                                                <div key={sale.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem' }}>
-                                                    <span style={{ color: 'white' }}>{sale.Product?.name} <span style={{ opacity: 0.5, marginLeft: '0.3rem' }}>x{sale.quantity}</span></span>
-                                                    <span style={{ fontWeight: 'bold', color: 'white' }}>₡{new Intl.NumberFormat('es-CR').format(sale.total)}</span>
-                                                </div>
                                             ))}
                                         </div>
-                                    </div>
-                                </div>
-                            ))}
-                            {pendingSales.length === 0 && (
-                                <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.5 }}>
-                                    <Clock size={48} style={{ marginBottom: '1rem', margin: '0 auto' }} />
-                                    <p>No hay ventas pendientes de pago.</p>
-                                </div>
-                            )}
-                        </div>
-                        <button
-                            onClick={() => setShowPendingModal(false)}
-                            style={{ width: '100%', marginTop: '2rem', padding: '1rem', borderRadius: '0.8rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', cursor: 'pointer' }}
-                        >
-                            Listo
-                        </button>
 
-                        {/* Delete confirmation sub-modal */}
-                        {deletingTransaction && (
-                            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000, padding: '1rem' }}>
-                                <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
-                                    <Trash2 size={40} color="#ef4444" style={{ marginBottom: '1rem' }} />
-                                    <h3 style={{ marginBottom: '0.5rem' }}>¿Eliminar Pendiente?</h3>
-                                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-                                        Esta acción no se puede deshacer. Selecciona un motivo:
-                                    </p>
-
-                                    <select
-                                        value={deleteReason}
-                                        onChange={(e) => setDeleteReason(e.target.value)}
-                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--glass-border)', outline: 'none', marginBottom: '1.5rem', fontSize: '1rem' }}
-                                    >
-                                        <option value="" style={{ background: '#1e293b' }}>-- Seleccionar motivo --</option>
-                                        {deleteReasons.map(r => (
-                                            <option key={r} value={r} style={{ background: '#1e293b' }}>{r}</option>
-                                        ))}
-                                    </select>
-
-                                    <div style={{ display: 'flex', gap: '1rem' }}>
                                         <button
-                                            onClick={() => {
-                                                setDeletingTransaction(null);
-                                                setDeleteReason('');
-                                            }}
-                                            style={{ flex: 1, padding: '0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', cursor: 'pointer' }}
+                                            onClick={() => setSelectedPendingSale(null)}
+                                            style={{ width: '100%', marginTop: '1.5rem', padding: '1rem', borderRadius: '0.8rem', background: 'none', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
                                         >
                                             Cancelar
                                         </button>
-                                        <button
-                                            disabled={!deleteReason || processingPayment}
-                                            onClick={handleDeletePending}
-                                            style={{ flex: 1, padding: '0.8rem', borderRadius: '0.5rem', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold', opacity: (!deleteReason || processingPayment) ? 0.5 : 1 }}
-                                        >
-                                            Eliminar
-                                        </button>
                                     </div>
                                 </div>
-                            </div>
-                        )}
-
-                        {/* Payment Selection Sub-modal */}
-                        {selectedPendingSale && (
-                            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000, padding: '1rem' }}>
-                                <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '500px' }}>
-                                    <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                                        <h2 style={{ marginBottom: '0.5rem' }}>Cobrar Transacción #{selectedPendingSale.id}</h2>
-                                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                            Total a cobrar: <span style={{ color: 'var(--accent)', fontWeight: 'bold', fontSize: '1.2rem' }}>₡{new Intl.NumberFormat('es-CR').format(selectedPendingSale.total)}</span>
-                                        </p>
-                                    </div>
-
-                                    <div style={{ display: 'grid', gap: '1rem' }}>
-                                        {paymentTypes.filter(t => t.name.toLowerCase() !== 'pendiente').map(type => (
-                                            <button
-                                                key={type.id}
-                                                disabled={processingPayment}
-                                                onClick={() => handleUpdatePayment(selectedPendingSale.id, type.id)}
-                                                className="glass-card hover-glow"
-                                                style={{
-                                                    padding: '1.2rem',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '1.5rem',
-                                                    cursor: 'pointer',
-                                                    width: '100%',
-                                                    border: '1px solid var(--glass-border)',
-                                                    background: 'rgba(255,255,255,0.03)',
-                                                    color: 'white',
-                                                    transition: 'all 0.2s',
-                                                    opacity: processingPayment ? 0.5 : 1
-                                                }}
-                                            >
-                                                <div style={{
-                                                    width: '50px',
-                                                    height: '50px',
-                                                    borderRadius: '1rem',
-                                                    background: 'rgba(255,255,255,0.05)',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    color: 'var(--primary)'
-                                                }}>
-                                                    {getPaymentIcon(type.name)}
-                                                </div>
-                                                <div style={{ textAlign: 'left' }}>
-                                                    <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.1rem' }}>{type.name}</p>
-                                                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Confirmar pago en {type.name}</p>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    <button
-                                        onClick={() => setSelectedPendingSale(null)}
-                                        style={{ width: '100%', marginTop: '1.5rem', padding: '1rem', borderRadius: '0.8rem', background: 'none', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
-                                    >
-                                        Cancelar
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Final Confirmation Modal */}
-            {showFinalConfirmModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0,0,0,0.8)',
-                    backdropFilter: 'blur(12px)',
-                    zIndex: 5000,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '2rem'
-                }} onClick={() => setShowFinalConfirmModal(false)}>
+            {
+                showFinalConfirmModal && (
                     <div style={{
-                        maxWidth: '500px',
-                        width: '100%',
-                        background: 'rgba(15, 15, 15, 0.95)',
-                        borderRadius: '24px',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        padding: '2.5rem',
-                        textAlign: 'center',
-                        boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 40px rgba(16, 185, 129, 0.1)',
-                        animation: 'fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
-                    }} onClick={e => e.stopPropagation()}>
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.8)',
+                        backdropFilter: 'blur(12px)',
+                        zIndex: 5000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '2rem'
+                    }} onClick={() => setShowFinalConfirmModal(false)}>
                         <div style={{
-                            width: '80px',
-                            height: '80px',
-                            background: 'rgba(16, 185, 129, 0.15)',
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            margin: '0 auto 1.5rem',
-                            color: '#10b981',
-                            border: '1px solid rgba(16, 185, 129, 0.2)'
-                        }}>
-                            <AlertTriangle size={40} />
-                        </div>
-                        <h2 style={{ fontSize: '1.75rem', marginBottom: '1rem', color: '#fff' }}>¿Confirmar Corte Definitivo?</h2>
-                        <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '2.5rem' }}>
-                            Esta acción consolidará **todos los cortes individuales** de este día en un solo reporte maestro. Esta acción es definitiva para el cierre del evento.
-                        </p>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button
-                                className="btn"
-                                style={{ flex: 1, padding: '1rem', background: 'rgba(255,255,255,0.05)', color: '#fff' }}
-                                onClick={() => setShowFinalConfirmModal(false)}
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                className="btn"
-                                style={{
-                                    flex: 1,
-                                    padding: '1rem',
-                                    background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                                    color: '#fff',
-                                    fontWeight: 'bold',
-                                    boxShadow: '0 10px 20px rgba(16, 185, 129, 0.3)'
-                                }}
-                                onClick={executeFinalClosing}
-                                disabled={saving}
-                            >
-                                {saving ? 'Procesando...' : 'Confirmar Corte'}
-                            </button>
+                            maxWidth: '500px',
+                            width: '100%',
+                            background: 'rgba(15, 15, 15, 0.95)',
+                            borderRadius: '24px',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            padding: '2.5rem',
+                            textAlign: 'center',
+                            boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 40px rgba(16, 185, 129, 0.1)',
+                            animation: 'fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+                        }} onClick={e => e.stopPropagation()}>
+                            <div style={{
+                                width: '80px',
+                                height: '80px',
+                                background: 'rgba(16, 185, 129, 0.15)',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: '0 auto 1.5rem',
+                                color: '#10b981',
+                                border: '1px solid rgba(16, 185, 129, 0.2)'
+                            }}>
+                                <AlertTriangle size={40} />
+                            </div>
+                            <h2 style={{ fontSize: '1.75rem', marginBottom: '1rem', color: '#fff' }}>¿Confirmar Corte Definitivo?</h2>
+                            <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '2.5rem' }}>
+                                Esta acción consolidará **todos los cortes individuales** de este día en un solo reporte maestro. Esta acción es definitiva para el cierre del evento.
+                            </p>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button
+                                    className="btn"
+                                    style={{ flex: 1, padding: '1rem', background: 'rgba(255,255,255,0.05)', color: '#fff' }}
+                                    onClick={() => setShowFinalConfirmModal(false)}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    className="btn"
+                                    style={{
+                                        flex: 1,
+                                        padding: '1rem',
+                                        background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                                        color: '#fff',
+                                        fontWeight: 'bold',
+                                        boxShadow: '0 10px 20px rgba(16, 185, 129, 0.3)'
+                                    }}
+                                    onClick={executeFinalClosing}
+                                    disabled={saving}
+                                >
+                                    {saving ? 'Procesando...' : 'Confirmar Corte'}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 

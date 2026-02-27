@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart, ChevronLeft, LogOut, Calculator } from 'lucide-react';
+import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart, ChevronLeft, LogOut, Calculator, Users as UsersIcon } from 'lucide-react';
 import { useState } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -10,6 +10,8 @@ import Products from './pages/Products';
 import Events from './pages/Events';
 import NewSale from './pages/NewSale';
 import Cashier from './pages/Cashier';
+import Users from './pages/Users';
+import { version } from '../package.json';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 console.log('Google Client ID (v2):', GOOGLE_CLIENT_ID);
@@ -98,6 +100,7 @@ const MainLayout = ({ children }) => {
                     <NavItem to="/suppliers" icon={Truck} label="Proveedores" />
                     <NavItem to="/events" icon={Calendar} label="Eventos" />
                     <NavItem to="/payments" icon={Calculator} label="Cierre de cajas" />
+                    {user?.role === 'admin' && <NavItem to="/users" icon={UsersIcon} label="Usuarios" />}
                 </div>
 
                 <div style={{
@@ -163,6 +166,28 @@ const MainLayout = ({ children }) => {
                         <LogOut size={18} />
                     </button>
                 </div>
+
+                <div className="version-tag" style={{
+                    padding: '0.75rem 0.25rem 0 0.25rem',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    width: '100%',
+                    opacity: 0.8
+                }}>
+                    <span style={{
+                        fontSize: '0.6rem',
+                        color: 'var(--text-secondary)',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        padding: '0.2rem 0.6rem',
+                        borderRadius: '1rem',
+                        border: '1px solid rgba(255, 255, 255, 0.05)',
+                        letterSpacing: '0.05em',
+                        fontWeight: '500',
+                        textTransform: 'uppercase'
+                    }}>
+                        {isCollapsed ? `v${version}` : `Versión ${version}`}
+                    </span>
+                </div>
             </nav>
         </div>
     );
@@ -196,6 +221,7 @@ function App() {
                             <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
                             <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
                             <Route path="/payments" element={<ProtectedRoute adminOnly={true}><Cashier /></ProtectedRoute>} />
+                            <Route path="/users" element={<ProtectedRoute adminOnly={true}><Users /></ProtectedRoute>} />
                             <Route path="/new-sale" element={<ProtectedRoute><NewSale /></ProtectedRoute>} />
                             <Route path="/login" element={<Login />} />
                         </Routes>

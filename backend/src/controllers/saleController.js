@@ -138,10 +138,14 @@ export const authorizeOpening = async (req, res) => {
 export const closeCash = async (req, res) => {
     try {
         const { id } = req.params; // ID de la apertura (CashOpening)
+        const { userId } = req.body;
+
         const opening = await CashOpening.findByPk(id);
         if (!opening) throw new Error('Apertura no encontrada');
 
         opening.status = 'closed';
+        opening.closingTime = new Date();
+        opening.closedById = userId || null;
         await opening.save();
 
         res.json({ message: 'Caja cerrada correctamente' });
