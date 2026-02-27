@@ -190,7 +190,7 @@ const Dashboard = () => {
                                         <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.4rem 0.8rem', borderRadius: '2rem', border: '1px solid var(--glass-border)' }}>
                                             <div style={{ width: 10, height: 10, borderRadius: '50%', background: COLORS[index % COLORS.length] }} />
                                             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{entry.name}</span>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>₡{new Intl.NumberFormat('es-CR', { notation: 'compact' }).format(entry.value)}</span>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>₡{new Intl.NumberFormat('es-CR').format(entry.value)}</span>
                                         </div>
                                     ))}
                                 </div>
