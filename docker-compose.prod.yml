@@ -36,8 +36,6 @@ services:
         - VITE_API_URL=/api
     container_name: event-frontend-prod
     restart: always
-    ports:
-      - "80:80"
     environment:
       - TZ=America/Costa_Rica
     depends_on:
