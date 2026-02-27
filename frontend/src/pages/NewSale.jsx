@@ -23,7 +23,9 @@ import {
     Receipt,
     RefreshCcw,
     AlertTriangle,
-    Save
+    Save,
+    FileText,
+    AlertCircle
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000/api`;
@@ -143,8 +145,6 @@ const NewSale = () => {
             if (res.data) {
                 setCashOpening(res.data);
                 fetchSessionTotal(dayId, res.data);
-            } else {
-                setShowOpeningModal(true);
             }
         } catch (err) {
             console.error('Error checking cash opening', err);
@@ -476,16 +476,45 @@ const NewSale = () => {
         return (
             <>
                 <div className="container" style={{ textAlign: 'center', padding: '5rem 0' }}>
-                    <div className="glass-card" style={{ padding: '3rem', maxWidth: '500px', margin: '0 auto' }}>
-                        <AlertTriangle size={64} color="#f59e0b" style={{ marginBottom: '2rem' }} />
-                        <h2 style={{ marginBottom: '1rem' }}>Caja no Iniciada</h2>
-                        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+                    <div className="glass-card" style={{ padding: '3.5rem 2rem', maxWidth: '500px', margin: '0 auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+                        <div style={{ marginBottom: '2rem' }}>
+                            <AlertTriangle size={80} color="#f59e0b" style={{ filter: 'drop-shadow(0 0 15px rgba(245, 158, 11, 0.3))' }} />
+                        </div>
+                        <h2 style={{ marginBottom: '1rem', fontSize: '1.8rem' }}>Caja no Iniciada</h2>
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', lineHeight: '1.6' }}>
                             Es necesario abrir la caja para poder realizar ventas en este día.
                         </p>
-                        <button onClick={() => setShowOpeningModal(true)} className="btn btn-primary" style={{ width: '100%', padding: '1rem' }}>
-                            <Save size={18} style={{ marginRight: '0.5rem' }} /> Abrir Caja Ahora
+                        <button
+                            onClick={() => setShowOpeningModal(true)}
+                            className="btn btn-primary"
+                            style={{
+                                width: '100%',
+                                padding: '1.2rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.8rem',
+                                fontSize: '1.1rem',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            <FileText size={22} /> Abrir Caja Ahora
                         </button>
-                        <button onClick={handleReset} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem', marginTop: '1.5rem' }}>
+                        <button
+                            onClick={handleReset}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                fontSize: '0.95rem',
+                                marginTop: '2rem',
+                                opacity: 0.7,
+                                transition: 'opacity 0.2s'
+                            }}
+                            onMouseOver={(e) => e.target.style.opacity = '1'}
+                            onMouseOut={(e) => e.target.style.opacity = '0.7'}
+                        >
                             Volver a la selección
                         </button>
                     </div>
