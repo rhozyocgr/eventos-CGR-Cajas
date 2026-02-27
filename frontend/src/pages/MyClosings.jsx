@@ -110,14 +110,25 @@ const MyClosings = () => {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.2rem' }}>
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{closing.SalesDay?.Event?.name || 'Evento'}</h3>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.3rem' }}>
-                                        <Calendar size={14} />
-                                        <span>{new Date(closing.SalesDay?.date + 'T00:00:00').toLocaleDateString()}</span>
-                                        <span style={{ opacity: 0.3 }}>|</span>
-                                        <Clock size={14} />
-                                        <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>
-                                            {new Date(closing.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.8rem', rowGap: '0.3rem', fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.3rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            <Calendar size={14} />
+                                            <span>{new Date(closing.SalesDay?.date + 'T00:00:00').toLocaleDateString()}</span>
+                                        </div>
+                                        <span style={{ opacity: 0.3, margin: '0 0.2rem' }}>|</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            <div style={{ padding: '0.1rem 0.4rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '0.4rem', fontSize: '0.75rem' }}>Abre:</div>
+                                            <span style={{ fontWeight: 'bold' }}>
+                                                {closing.openingTime ? new Date(closing.openingTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                                            </span>
+                                        </div>
+                                        <span style={{ opacity: 0.3, margin: '0 0.2rem' }}>|</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            <div style={{ padding: '0.1rem 0.4rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '0.4rem', fontSize: '0.75rem' }}>Cierra:</div>
+                                            <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>
+                                                {new Date(closing.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                                 {closing.isFinal && (

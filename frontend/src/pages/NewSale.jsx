@@ -215,7 +215,8 @@ const NewSale = () => {
         try {
             setPaymentLoading(true);
             await axios.put(`${API_URL}/sales/close-cash/${cashOpening.id}`, {
-                userId: user.id
+                userId: user.id,
+                summary: sessionSummary
             });
             toast.success('Caja cerrada con éxito');
             setCashOpening(null);

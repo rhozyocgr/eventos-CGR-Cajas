@@ -173,6 +173,22 @@ export const closeCash = async (req, res) => {
         opening.closedById = userId || null;
         await opening.save();
 
+        // Si se envió un resumen, creamos el reporte de cierre automáticamente
+        const { summary } = req.body;
+        if (summary) {
+            await CashClosing.create({
+                SalesDayId: opening.SalesDayId,
+                UserId: opening.UserId,
+                totalEfectivo: summary.totalEfectivo || 0,
+                totalTarjeta: summary.totalTarjeta || 0,
+                totalSinpe: summary.totalSinpe || 0,
+                totalGeneral: summary.totalGeneral || 0,
+                totalComisiones: summary.totalComisiones || 0,
+                openingTime: opening.openingTime,
+                details: { ...summary, cashOpeningId: opening.id }
+            });
+        }
+
         res.json({ message: 'Caja cerrada correctamente' });
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -399,6 +415,7 @@ export const createCashClosing = async (req, res) => {
             totalSinpe: summary.totalSinpe || 0,
             totalGeneral: summary.totalGeneral || 0,
             totalComisiones: summary.totalComisiones || 0,
+            openingTime: summary.openingTime || null,
             details: summary
         });
 
