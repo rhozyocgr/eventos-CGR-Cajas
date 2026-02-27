@@ -24,17 +24,24 @@ const Authorizations = () => {
         fetchPendingOpenings();
     }, []);
 
-    const fetchPendingOpenings = async () => {
+    const fetchPendingOpenings = async (silent = false) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
             const res = await axios.get(`${API_URL}/sales/pending-openings`);
             setPendingOpenings(res.data);
         } catch (err) {
-            toast.error('Error al cargar autorizaciones pendientes');
+            if (!silent) toast.error('Error al cargar autorizaciones pendientes');
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchPendingOpenings(true);
+        }, 1000); // Polling cada 1 segundo
+        return () => clearInterval(interval);
+    }, []);
 
     const handleAction = async (id, status) => {
         try {
@@ -62,14 +69,6 @@ const Authorizations = () => {
                         Valida y autoriza el inicio de sesión de los cajeros
                     </p>
                 </div>
-                <button
-                    onClick={fetchPendingOpenings}
-                    className="btn btn-secondary"
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                    <RefreshCcw size={18} className={loading ? 'spin' : ''} />
-                    Actualizar
-                </button>
             </div>
 
             {loading && pendingOpenings.length === 0 ? (

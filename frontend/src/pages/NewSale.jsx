@@ -138,7 +138,7 @@ const NewSale = () => {
         if (selectedDay && cashOpening?.status === 'pending') {
             interval = setInterval(() => {
                 checkCashOpening(selectedDay.id, true);
-            }, 3000); // Verificar cada 3 segundos
+            }, 1000); // Verificar cada 1 segundo
         }
         return () => {
             if (interval) clearInterval(interval);
@@ -488,10 +488,7 @@ const NewSale = () => {
                                 <p style={{ margin: 0 }}><strong>Día:</strong> {new Date(selectedDay.date + 'T00:00:00').toLocaleDateString()}</p>
                                 <p style={{ margin: 0 }}><strong>Hora:</strong> {new Date(cashOpening.openingTime).toLocaleTimeString()}</p>
                             </div>
-                            <button onClick={() => checkCashOpening(selectedDay.id)} className="btn btn-primary" style={{ width: '100%', padding: '1.2rem' }}>
-                                <RefreshCcw size={18} style={{ marginRight: '0.5rem' }} /> Reintentar / Actualizar
-                            </button>
-                            <button onClick={handleReset} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                            <button onClick={handleReset} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', marginTop: '1rem' }}>
                                 Cancelar y volver
                             </button>
                         </div>
