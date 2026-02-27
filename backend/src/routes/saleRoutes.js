@@ -1,5 +1,5 @@
 import express from 'express';
-import { createSale, getPaymentTypes, getPendingSales, updatePaymentType, getSalesSummary, createCashClosing, createFinalCashClosing, getCashClosings, deleteTransaction, openCash, getActiveOpening, closeCash, getPendingOpenings, authorizeOpening } from '../controllers/saleController.js';
+import { createSale, getPaymentTypes, getPendingSales, updatePaymentType, getSalesSummary, createCashClosing, createFinalCashClosing, getCashClosings, deleteTransaction, openCash, getActiveOpening, closeCash, getPendingOpenings, authorizeOpening, confirmOpening } from '../controllers/saleController.js';
 
 const router = express.Router();
 
@@ -16,6 +16,7 @@ router.post('/open-cash', openCash);
 router.get('/active-opening', getActiveOpening);
 router.get('/pending-openings', getPendingOpenings);
 router.post('/authorize-opening/:id', authorizeOpening);
+router.post('/confirm-opening/:id', confirmOpening);
 router.put('/close-cash/:id', closeCash);
 
 export default router;

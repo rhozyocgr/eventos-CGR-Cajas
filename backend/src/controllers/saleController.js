@@ -61,21 +61,21 @@ export const createSale = async (req, res) => {
 
 export const openCash = async (req, res) => {
     try {
-        const { salesDayId, userId, initialCash } = req.body;
+        const { salesDayId, userId } = req.body;
 
         let initialStatus = 'pending';
         let authorizedById = null;
 
         const user = await User.findByPk(userId);
         if (user && user.role === 'admin') {
-            initialStatus = 'authorized';
+            initialStatus = 'authorized'; // Admin is self-authorized
             authorizedById = user.id;
         }
 
         const opening = await CashOpening.create({
             SalesDayId: salesDayId,
             UserId: userId,
-            initialCash: initialCash || 0,
+            initialCash: 0,
             status: initialStatus,
             authorizedById: authorizedById
         });
@@ -92,7 +92,7 @@ export const getActiveOpening = async (req, res) => {
             where: {
                 SalesDayId: salesDayId,
                 UserId: userId,
-                status: ['pending', 'authorized']
+                status: ['pending', 'authorized', 'active']
             }
         });
         res.json(opening);
@@ -130,6 +130,26 @@ export const authorizeOpening = async (req, res) => {
         await opening.save();
 
         res.json({ message: `Apertura ${status === 'authorized' ? 'autorizada' : 'denegada'} con éxito`, opening });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+export const confirmOpening = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { initialCash } = req.body;
+
+        const opening = await CashOpening.findByPk(id);
+        if (!opening) throw new Error('Apertura no encontrada');
+        if (opening.status !== 'authorized') throw new Error('La apertura debe estar autorizada por un administrador');
+
+        opening.initialCash = initialCash || 0;
+        opening.status = 'active';
+        opening.openingTime = new Date(); // Update opening time to when they actually start
+        await opening.save();
+
+        res.json({ message: 'Caja abierta correctamente', opening });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
