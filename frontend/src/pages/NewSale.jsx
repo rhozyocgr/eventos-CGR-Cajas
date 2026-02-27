@@ -58,6 +58,17 @@ const NewSale = () => {
     const [showCheckout, setShowCheckout] = useState(false);
     const [paymentLoading, setPaymentLoading] = useState(false);
     const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+
+    const formatDayName = (dateString, format = 'full') => {
+        if (!dateString) return '';
+        const [year, month, day] = dateString.split('T')[0].split('-');
+        const localDate = new Date(year, month - 1, day);
+
+        if (format === 'short') {
+            return localDate.toLocaleDateString('es-ES');
+        }
+        return localDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+    };
     const [lastSaleTotal, setLastSaleTotal] = useState(0);
     const [lastPaymentType, setLastPaymentType] = useState('');
     const [observation, setObservation] = useState('');
@@ -399,7 +410,7 @@ const NewSale = () => {
                             <div style={{ flex: 1 }}>
                                 <h3 style={{ margin: 0 }}>{ev.name}</h3>
                                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
-                                    {new Date(ev.startDate).toLocaleDateString()}
+                                    {formatDayName(ev.startDate, 'short')}
                                 </p>
                             </div>
                             <ChevronRight size={24} color="var(--glass-border)" />
@@ -423,7 +434,7 @@ const NewSale = () => {
                             style={{ padding: '2rem 1rem', cursor: 'pointer', textAlign: 'center' }}
                             onClick={() => handleSelectDay(day)}>
                             <h3 style={{ color: 'var(--primary)', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
-                                {new Date(day.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                {formatDayName(day.date)}
                             </h3>
                             <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>{day.Products?.length || 0} productos</p>
                         </div>
@@ -448,7 +459,7 @@ const NewSale = () => {
                         <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0.8rem', fontSize: '0.85rem', textAlign: 'left' }}>
                             <p style={{ margin: '0 0 0.5rem 0', opacity: 0.6 }}>Detalles de sesión:</p>
                             <p style={{ margin: 0 }}><strong>Usuario:</strong> {user.name}</p>
-                            <p style={{ margin: 0 }}><strong>Día:</strong> {new Date(selectedDay.date + 'T00:00:00').toLocaleDateString()}</p>
+                            <p style={{ margin: 0 }}><strong>Día:</strong> {formatDayName(selectedDay.date, 'short')}</p>
                             <p style={{ margin: 0 }}><strong>Hora:</strong> {new Date(cashOpening.openingTime).toLocaleTimeString()}</p>
                         </div>
                         <button
@@ -579,7 +590,7 @@ const NewSale = () => {
                     <div>
                         <h4 style={{ margin: 0, fontSize: '0.9rem' }}>{selectedEvent.name}</h4>
                         <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>
-                            {new Date(selectedDay.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                            {formatDayName(selectedDay.date)}
                         </p>
                     </div>
                 </div>

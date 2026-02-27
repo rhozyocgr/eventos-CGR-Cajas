@@ -57,6 +57,17 @@ const Cashier = () => {
 
     const deleteReasons = ['Error de digitación', 'Cliente se arrepintió', 'Cambio de método de pago', 'Duplicado', 'Otro'];
 
+    const formatDayName = (dateString, format = 'full') => {
+        if (!dateString) return '';
+        const [year, month, day] = dateString.split('T')[0].split('-');
+        const localDate = new Date(year, month - 1, day);
+
+        if (format === 'short') {
+            return localDate.toLocaleDateString('es-ES');
+        }
+        return localDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+    };
+
     useEffect(() => {
         fetchEvents();
         fetchPaymentTypes();
@@ -505,7 +516,7 @@ const Cashier = () => {
                             <div style={{ flex: 1 }}>
                                 <h3 style={{ margin: 0 }}>{ev.name}</h3>
                                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
-                                    {new Date(ev.startDate).toLocaleDateString()} - {new Date(ev.endDate).toLocaleDateString()}
+                                    {formatDayName(ev.startDate, 'short')} - {formatDayName(ev.endDate, 'short')}
                                 </p>
                             </div>
                         </div>
@@ -527,8 +538,8 @@ const Cashier = () => {
                         <div key={day.id} className="glass-card hover-glow"
                             style={{ padding: '2rem 1.5rem', cursor: 'pointer', textAlign: 'center' }}
                             onClick={() => handleSelectDay(day)}>
-                            <h3 style={{ color: 'var(--primary)', marginBottom: '0.5rem' }}>
-                                {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                            <h3 style={{ color: 'var(--primary)', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
+                                {formatDayName(day.date)}
                             </h3>
                             <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>Haga clic para ver resumen</p>
                         </div>
@@ -547,7 +558,7 @@ const Cashier = () => {
                     </button>
                     <h1 style={{ marginBottom: '0.2rem' }}>Cierre de Caja</h1>
                     <p style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Calendar size={16} /> {new Date(selectedDay.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        <Calendar size={16} /> <span style={{ textTransform: 'capitalize' }}>{formatDayName(selectedDay.date)}</span>
                         <span style={{ color: 'var(--glass-border)' }}>|</span>
                         <Users size={16} /> Usuario: {user?.name || 'Administrador'}
                     </p>
@@ -780,7 +791,7 @@ const Cashier = () => {
                                             <p style={{ margin: '0.2rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{opening.User?.email}</p>
                                             <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', fontSize: '0.75rem' }}>
                                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--accent)' }}>
-                                                    <Calendar size={12} /> {new Date(opening.openingTime).toLocaleDateString()}
+                                                    <Calendar size={12} /> {formatDayName(opening.openingTime, 'short')}
                                                 </span>
                                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--accent)' }}>
                                                     <Clock size={12} /> {new Date(opening.openingTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

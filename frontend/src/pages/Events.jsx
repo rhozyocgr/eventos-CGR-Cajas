@@ -40,6 +40,17 @@ const Events = () => {
         return `${day}-${month}-${year}`;
     };
 
+    const formatDayName = (dateString, format = 'full') => {
+        if (!dateString) return '';
+        const [year, month, day] = dateString.split('T')[0].split('-');
+        const localDate = new Date(year, month - 1, day);
+
+        if (format === 'short') {
+            return localDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+        }
+        return localDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -565,8 +576,8 @@ const Events = () => {
                             {selectedEventDays.map(day => (
                                 <div key={day.id} className="glass-card" style={{ padding: '1.2rem', background: 'rgba(255,255,255,0.02)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                        <h4 style={{ margin: 0, color: 'var(--primary)' }}>
-                                            {new Date(day.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                        <h4 style={{ margin: 0, color: 'var(--primary)', textTransform: 'capitalize' }}>
+                                            {formatDayName(day.date)}
                                         </h4>
                                         <button
                                             onClick={() => handleOpenDayEdit(day)}
@@ -634,7 +645,7 @@ const Events = () => {
                     <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '800px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', alignItems: 'center' }}>
                             <div>
-                                <h3 style={{ margin: 0 }}>Gestionar Productos - {new Date(editingDay?.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</h3>
+                                <h3 style={{ margin: 0 }}>Gestionar Productos - <span style={{ textTransform: 'capitalize' }}>{formatDayName(editingDay?.date, 'short')}</span></h3>
                                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Selecciona los productos de este día</p>
                             </div>
                             <button onClick={() => setIsDayEditingModalOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>
