@@ -850,6 +850,12 @@ const Cashier = () => {
                                 ₡{new Intl.NumberFormat('es-CR').format(summary.totalComisiones)}
                             </h3>
                         </div>
+                        <div className="glass-card" style={{ padding: '1.5rem', background: 'rgba(245, 158, 11, 0.05)', borderColor: 'rgba(245, 158, 11, 0.2)' }}>
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#f59e0b' }}>VENTAS PENDIENTES</p>
+                            <h3 style={{ margin: '0.5rem 0 0 0', fontSize: '1.5rem', color: '#f59e0b' }}>
+                                ₡{new Intl.NumberFormat('es-CR').format(summary.totalPendiente || 0)}
+                            </h3>
+                        </div>
                         {summary.totalPendiente > 0 && (
                             <div className="glass-card hover-glow"
                                 onClick={handleViewPending}
@@ -1538,6 +1544,12 @@ const SummaryView = ({ summary }) => {
                         ₡{new Intl.NumberFormat('es-CR').format(summary.totalGananciaGrupos || 0)}
                     </h2>
                 </div>
+                <div className="glass-card" style={{ padding: '1.5rem', background: 'rgba(245, 158, 11, 0.05)', borderColor: 'rgba(245, 158, 11, 0.2)' }}>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#f59e0b', fontWeight: 'bold' }}>VENTAS PENDIENTES</p>
+                    <h2 style={{ margin: '0.5rem 0 0 0', fontSize: '1.5rem', color: '#f59e0b' }}>
+                        ₡{new Intl.NumberFormat('es-CR').format(summary.totalPendiente || 0)}
+                    </h2>
+                </div>
             </div>
 
             <div style={{ display: 'grid', gap: '1.5rem' }}>
@@ -1596,6 +1608,10 @@ const SummaryView = ({ summary }) => {
                                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
                                     <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>SINPE</p>
                                     <p style={{ margin: '0.2rem 0 0 0', fontWeight: 'bold' }}>₡{new Intl.NumberFormat('es-CR').format(supp.sinpeTotal || 0)}</p>
+                                </div>
+                                <div style={{ background: 'rgba(245, 158, 11, 0.05)', padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                                    <p style={{ margin: 0, fontSize: '0.7rem', color: '#f59e0b' }}>PENDIENTES</p>
+                                    <p style={{ margin: '0.2rem 0 0 0', fontWeight: 'bold', color: '#f59e0b' }}>₡{new Intl.NumberFormat('es-CR').format(supp.pendingTotal || 0)}</p>
                                 </div>
                                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '0.5rem', textAlign: 'center' }}>
                                     <p style={{ margin: 0, fontSize: '0.7rem', color: '#ef4444' }}>COMISIÓN BANCO</p>

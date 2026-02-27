@@ -545,29 +545,48 @@ export const createFinalCashClosing = async (req, res) => {
             totalGeneral: 0,
             totalComisiones: 0,
             totalGananciaGrupos: 0,
+            totalPendiente: 0,
             bySupplier: {}
         };
 
         partialClosings.forEach(closing => {
             const details = typeof closing.details === 'string' ? JSON.parse(closing.details) : closing.details;
 
-            finalSummary.totalEfectivo += parseFloat(closing.totalEfectivo);
-            finalSummary.totalTarjeta += parseFloat(closing.totalTarjeta);
-            finalSummary.totalSinpe += parseFloat(closing.totalSinpe);
-            finalSummary.totalGeneral += parseFloat(closing.totalGeneral);
-            finalSummary.totalComisiones += parseFloat(closing.totalComisiones);
-            finalSummary.totalGananciaGrupos += parseFloat(details.totalGananciaGrupos || 0);
+            finalSummary.totalEfectivo += parseFloat(closing.totalEfectivo || 0);
+            finalSummary.totalTarjeta += parseFloat(closing.totalTarjeta || 0);
+            finalSummary.totalSinpe += parseFloat(closing.totalSinpe || 0);
+            finalSummary.totalGeneral += parseFloat(closing.totalGeneral || 0);
+            finalSummary.totalComisiones += parseFloat(closing.totalComisiones || 0);
+            finalSummary.totalGananciaGrupos += parseFloat(details?.totalGananciaGrupos || 0);
+            finalSummary.totalPendiente += parseFloat(details?.totalPendiente || 0);
 
             // Consolidar por proveedor
-            if (details.bySupplier) {
+            if (details && details.bySupplier) {
                 Object.entries(details.bySupplier).forEach(([suppId, suppData]) => {
                     if (!finalSummary.bySupplier[suppId]) {
-                        finalSummary.bySupplier[suppId] = { ...suppData };
+                        // Deep copy of supplier data so we avoid mutating products
+                        finalSummary.bySupplier[suppId] = JSON.parse(JSON.stringify(suppData));
                     } else {
-                        finalSummary.bySupplier[suppId].total += parseFloat(suppData.total);
-                        finalSummary.bySupplier[suppId].cardCommission += parseFloat(suppData.cardCommission || 0);
-                        finalSummary.bySupplier[suppId].groupProfit += parseFloat(suppData.groupProfit || 0);
-                        // Los nombres y tipos se mantienen igual
+                        const target = finalSummary.bySupplier[suppId];
+                        target.total += parseFloat(suppData.total || 0);
+                        target.cashTotal += parseFloat(suppData.cashTotal || 0);
+                        target.cardTotal += parseFloat(suppData.cardTotal || 0);
+                        target.sinpeTotal += parseFloat(suppData.sinpeTotal || 0);
+                        target.pendingTotal += parseFloat(suppData.pendingTotal || 0);
+                        target.cardCommission += parseFloat(suppData.cardCommission || 0);
+                        target.groupProfit += parseFloat(suppData.groupProfit || 0);
+
+                        // Consolidar productos
+                        if (suppData.products) {
+                            Object.entries(suppData.products).forEach(([prodId, prodData]) => {
+                                if (!target.products[prodId]) {
+                                    target.products[prodId] = { ...prodData };
+                                } else {
+                                    target.products[prodId].quantity += parseFloat(prodData.quantity || 0);
+                                    target.products[prodId].total += parseFloat(prodData.total || 0);
+                                }
+                            });
+                        }
                     }
                 });
             }
