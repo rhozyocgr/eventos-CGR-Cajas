@@ -219,7 +219,7 @@ export const getDashboardStats = async (req, res) => {
                 'ProductId',
                 [sequelize.fn('SUM', sequelize.col('quantity')), 'totalQuantity']
             ],
-            include: [{ model: Product, attributes: ['name'] }],
+            include: [{ model: Product, attributes: ['name'], required: true }],
             group: ['ProductId', 'Product.id'],
             order: [[sequelize.literal('totalQuantity'), 'DESC']],
             limit: 10
