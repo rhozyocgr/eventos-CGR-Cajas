@@ -193,12 +193,27 @@ const Events = () => {
 
     const handleDelete = (id) => {
         toast((t) => (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <p style={{ margin: 0, fontWeight: '500' }}>¿Estás seguro de eliminar este evento?</p>
-                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '300px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', color: '#ef4444' }}>
+                    <Trash2 size={24} />
+                    <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.1rem' }}>¿Eliminar Evento?</p>
+                </div>
+
+                <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#fca5a5', lineHeight: '1.4' }}>
+                        <strong>¡ADVERTENCIA DE BORRADO EN CASCADA!</strong><br /><br />
+                        Al eliminar este evento, se destruirán permanentemente:<br />
+                        • Todos los días vinculados<br />
+                        • Todas las <strong>Ventas y Transacciones</strong><br />
+                        • Todos los <strong>Cierres y Aperturas de Caja</strong> de todos los cajeros<br /><br />
+                        Esta acción es irreversible y borrará todo el historial financiero.
+                    </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
                     <button
                         onClick={() => toast.dismiss(t.id)}
-                        style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '0.4rem', cursor: 'pointer' }}
+                        style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '0.6rem 1rem', borderRadius: '0.4rem', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}
                     >
                         Cancelar
                     </button>
@@ -208,18 +223,18 @@ const Events = () => {
                             try {
                                 await axios.delete(`${API_URL}/events/${id}`);
                                 setEvents(events.filter(ev => ev.id !== id));
-                                toast.success('Evento eliminado');
+                                toast.success('Evento y todos sus registros eliminados exitosamente');
                             } catch (err) {
-                                toast.error('Error al eliminar el evento');
+                                toast.error('Error al intentar eliminar el evento en cascada');
                             }
                         }}
-                        style={{ background: '#ef4444', border: 'none', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '0.4rem', cursor: 'pointer' }}
+                        style={{ background: '#ef4444', border: 'none', color: 'white', padding: '0.6rem 1rem', borderRadius: '0.4rem', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)', transition: 'background 0.2s' }}
                     >
-                        Eliminar
+                        Sí, Destruir Todo
                     </button>
                 </div>
             </div>
-        ), { position: 'top-center' });
+        ), { position: 'top-center', duration: 15000 });
     };
 
     return (
