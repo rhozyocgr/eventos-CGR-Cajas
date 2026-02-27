@@ -27,7 +27,7 @@ backup() {
     fi
 
     TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-    BACKUP_DIR="$ROOT_DIR/backups"
+    BACKUP_DIR="/home/ubuntu/backups"
     mkdir -p "$BACKUP_DIR"
     BACKUP_FILE="$BACKUP_DIR/backup_${DB_NAME}_${TIMESTAMP}.sql"
     
