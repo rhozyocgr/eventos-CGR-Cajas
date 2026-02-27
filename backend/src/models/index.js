@@ -91,6 +91,22 @@ const CashOpening = sequelize.define('CashOpening', {
     }
 });
 
+const TransactionRequest = sequelize.define('TransactionRequest', {
+    type: { type: DataTypes.ENUM('payment_change', 'deletion', 'product_edit'), allowNull: false },
+    status: { type: DataTypes.ENUM('pending', 'approved', 'denied'), defaultValue: 'pending' },
+    reason: { type: DataTypes.TEXT },
+    details: { type: DataTypes.JSON }, // e.g., { newPaymentTypeId: 2 }
+    authorizedById: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'Users',
+            key: 'id'
+        }
+    },
+    authorizedAt: { type: DataTypes.DATE }
+});
+
 // Associations
 Supplier.hasMany(Product);
 Product.belongsTo(Supplier);
@@ -125,10 +141,16 @@ CashOpening.belongsTo(User);
 SalesDay.hasMany(CashOpening);
 CashOpening.belongsTo(SalesDay);
 
+Transaction.hasMany(TransactionRequest);
+TransactionRequest.belongsTo(Transaction);
+
+User.hasMany(TransactionRequest, { foreignKey: 'requesterId' });
+TransactionRequest.belongsTo(User, { as: 'requester', foreignKey: 'requesterId' });
+
 Event.belongsToMany(Product, { through: 'EventProducts' });
 Product.belongsToMany(Event, { through: 'EventProducts' });
 
 SalesDay.belongsToMany(Product, { through: 'DayProducts' });
 Product.belongsToMany(SalesDay, { through: 'DayProducts' });
 
-export { sequelize, User, Supplier, Product, SalesDay, PaymentType, Transaction, Sale, Event, CashClosing, CashOpening };
+export { sequelize, User, Supplier, Product, SalesDay, PaymentType, Transaction, Sale, Event, CashClosing, CashOpening, TransactionRequest };
