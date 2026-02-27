@@ -118,6 +118,8 @@ body {
     justify-content: flex-start;
     gap: 2rem;
     padding: 2rem 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .mobile-nav.collapsed {
@@ -136,6 +138,19 @@ body {
 
   .mobile-nav.collapsed .nav-logo span {
     display: none;
+  }
+
+  .mobile-nav::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .mobile-nav::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .mobile-nav::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: 4px;
   }
 
   .main-content {

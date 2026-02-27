@@ -16,7 +16,7 @@ const Suppliers = () => {
 
     const [formData, setFormData] = useState({
         name: '',
-        type: 'Artesanía',
+        type: 'Alimentación',
         phone: '',
         email: '',
         hasDataphone: false,
@@ -46,7 +46,7 @@ const Suppliers = () => {
             setEditingSupplier(supplier);
             setFormData({
                 name: supplier.name,
-                type: supplier.type || 'Artesanía',
+                type: supplier.type || 'Alimentación',
                 phone: supplier.phone || '',
                 email: supplier.email || '',
                 hasDataphone: !!supplier.hasDataphone,
@@ -57,7 +57,7 @@ const Suppliers = () => {
             setEditingSupplier(null);
             setFormData({
                 name: '',
-                type: 'Artesanía',
+                type: 'Alimentación',
                 phone: '',
                 email: '',
                 hasDataphone: false,
