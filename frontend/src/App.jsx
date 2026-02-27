@@ -42,7 +42,7 @@ const NavItem = ({ to, icon: Icon, label }) => {
     const isActive = location.pathname === to;
     return (
         <Link to={to} className={`nav-item ${isActive ? 'active' : ''}`}>
-            <Icon size={24} />
+            <Icon size={20} />
             <span>{label}</span>
         </Link>
     );
@@ -95,7 +95,28 @@ const MainLayout = ({ children }) => {
                     )}
                 </div>
 
-                <div className={`nav-profile-container ${isCollapsed ? 'collapsed' : ''}`}>
+                <div className={`nav-profile-container ${isCollapsed ? 'collapsed' : ''}`} style={{ position: 'relative' }}>
+                    <div className="version-tag" style={{
+                        position: 'absolute',
+                        top: '-15px',
+                        left: isCollapsed ? '50%' : '56px',
+                        transform: isCollapsed ? 'translateX(-50%)' : 'none',
+                        width: 'auto',
+                        opacity: 0.5,
+                        pointerEvents: 'none',
+                        zIndex: 10
+                    }}>
+                        <span style={{
+                            fontSize: '0.5rem',
+                            color: 'var(--text-secondary)',
+                            letterSpacing: '0.05em',
+                            fontWeight: '600',
+                            textTransform: 'uppercase',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            v{version}
+                        </span>
+                    </div>
                     <div style={{
                         width: '40px',
                         height: '40px',
@@ -148,28 +169,6 @@ const MainLayout = ({ children }) => {
                     >
                         <LogOut size={18} />
                     </button>
-                </div>
-
-                <div className="version-tag" style={{
-                    padding: '0.75rem 0.25rem 0 0.25rem',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    width: '100%',
-                    opacity: 0.8
-                }}>
-                    <span style={{
-                        fontSize: '0.6rem',
-                        color: 'var(--text-secondary)',
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        padding: '0.2rem 0.6rem',
-                        borderRadius: '1rem',
-                        border: '1px solid rgba(255, 255, 255, 0.05)',
-                        letterSpacing: '0.05em',
-                        fontWeight: '500',
-                        textTransform: 'uppercase'
-                    }}>
-                        {isCollapsed ? `v${version}` : `Versión ${version}`}
-                    </span>
                 </div>
             </nav>
         </div>

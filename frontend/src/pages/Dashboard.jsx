@@ -69,7 +69,7 @@ const Dashboard = () => {
 
             {/* Stats Cards */}
             <div className="stats-grid">
-                <div className="glass-card hover-glow" style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
+                <div className="glass-card hover-glow" style={{ padding: '1rem', position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', top: '-10px', right: '-10px', opacity: 0.1 }}>
                         <DollarSign size={80} />
                     </div>
@@ -83,7 +83,7 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                <div className="glass-card hover-glow" style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
+                <div className="glass-card hover-glow" style={{ padding: '1rem', position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', top: '-10px', right: '-10px', opacity: 0.1 }}>
                         <Package size={80} />
                     </div>
@@ -94,7 +94,7 @@ const Dashboard = () => {
                     <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>En catálogo total</p>
                 </div>
 
-                <div className="glass-card hover-glow" style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
+                <div className="glass-card hover-glow" style={{ padding: '1rem', position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', top: '-10px', right: '-10px', opacity: 0.1 }}>
                         <Truck size={80} />
                     </div>

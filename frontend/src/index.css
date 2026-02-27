@@ -152,12 +152,19 @@ html {
   display: none;
 }
 
-/* Dashboard Specific Responsive Styles */
+.dashboard-container {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
+}
+
 .dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem;
   gap: 1rem;
 }
 
@@ -197,7 +204,7 @@ html {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .charts-grid {
@@ -207,8 +214,8 @@ html {
 }
 
 .chart-card {
-  padding: 1.25rem;
-  min-height: 380px;
+  padding: 1rem;
+  min-height: 300px;
 }
 
 .chart-title {
@@ -221,12 +228,12 @@ html {
 
 .chart-container {
   width: 100%;
-  height: 280px;
+  height: 220px;
 }
 
 .chart-container-pie {
   width: 100%;
-  height: 320px;
+  height: 240px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -377,13 +384,13 @@ html {
 
 @media (min-width: 768px) {
   .title-section h1 {
-    font-size: 2.5rem;
+    font-size: 2rem;
   }
 
   .stats-grid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    gap: 1rem;
+    margin-bottom: 1rem;
   }
 
   .charts-grid {
@@ -391,16 +398,18 @@ html {
   }
 
   .chart-card {
-    padding: 1.5rem;
-    min-height: 450px;
+    min-height: auto;
+    flex: 1;
   }
 
   .chart-container {
-    height: 350px;
+    height: 30vh;
+    min-height: 220px;
   }
 
   .chart-container-pie {
-    height: 350px;
+    height: 30vh;
+    min-height: 220px;
   }
 
   .mobile-nav {
@@ -411,15 +420,15 @@ html {
     width: var(--sidebar-width);
     height: 100vh;
     justify-content: flex-start;
-    gap: 2rem;
-    padding: 2rem 1rem;
+    gap: 0.5rem;
+    padding: 1rem 0.75rem;
     overflow-y: auto;
     overflow-x: hidden;
   }
 
   .mobile-nav.collapsed {
     width: var(--sidebar-collapsed-width);
-    padding: 2rem 0.5rem;
+    padding: 1rem 0.5rem;
   }
 
   .mobile-nav.collapsed .nav-item span {
@@ -428,7 +437,7 @@ html {
 
   .mobile-nav.collapsed .nav-item {
     justify-content: center;
-    padding: 0.75rem 0;
+    padding: 0.5rem 0;
   }
 
   .nav-menu-container {
@@ -446,7 +455,7 @@ html {
     align-items: center;
     gap: 0.75rem;
     margin-top: auto;
-    padding-top: 1rem;
+    padding-top: 0.5rem;
     border-top: 1px solid var(--glass-border);
     width: 100%;
     flex-direction: row;
@@ -465,8 +474,8 @@ html {
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-top: 1.5rem;
-    margin-bottom: 0.5rem;
+    margin-top: 0.75rem;
+    margin-bottom: 0.25rem;
     opacity: 0.8;
   }
 
@@ -514,7 +523,7 @@ html {
     justify-content: flex-start;
     font-size: 1rem;
     gap: 1rem;
-    padding: 0.75rem 1rem;
+    padding: 0.4rem 0.75rem;
     border-radius: 0.5rem;
     transition: all 0.2s;
     width: 100%;
@@ -535,10 +544,10 @@ html {
     cursor: pointer;
     padding: 0.5rem;
     border-radius: 50%;
-    margin-bottom: 2rem;
+    margin-bottom: 0.5rem;
     transition: all 0.2s;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     align-self: flex-end;
   }
 
