@@ -311,53 +311,85 @@ const Events = () => {
                     alignItems: 'center', justifyContent: 'center', zIndex: 2000,
                     padding: '1rem'
                 }}>
-                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                            <h2>{editingEvent ? 'Editar Evento' : 'Nuevo Evento'}</h2>
-                            <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>
+                    <div className="glass-card" style={{
+                        padding: window.innerWidth < 768 ? '1.5rem' : '2.5rem',
+                        width: '100%',
+                        maxWidth: editingEvent ? '850px' : '600px',
+                        maxHeight: '95vh',
+                        overflowY: 'auto',
+                        position: 'relative',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'center' }}>
+                            <h2 style={{ fontSize: window.innerWidth < 768 ? '1.5rem' : '1.8rem', margin: 0 }}>
+                                {editingEvent ? 'Editar Evento' : 'Nuevo Evento'}
+                            </h2>
+                            <button onClick={() => setIsModalOpen(false)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', padding: '0.4rem', borderRadius: '50%' }}>
                                 <X size={24} />
                             </button>
                         </div>
                         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '1.5rem', alignItems: 'center' }}>
-                                <div style={{ textAlign: 'center' }}>
-                                    <label style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                                        <div style={{ width: '80px', height: '80px', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', border: '1px dashed var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: window.innerWidth < 640 ? '1fr' : '120px 1fr',
+                                gap: '1.5rem',
+                                alignItems: 'start',
+                                background: 'rgba(255,255,255,0.02)',
+                                padding: '1.5rem',
+                                borderRadius: '1rem',
+                                border: '1px solid var(--glass-border)'
+                            }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
+                                    <label style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.8rem' }}>
+                                        <div style={{
+                                            width: '120px',
+                                            height: '120px',
+                                            borderRadius: '1rem',
+                                            background: 'rgba(15, 23, 42, 0.6)',
+                                            border: '2px dashed var(--glass-border)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            overflow: 'hidden',
+                                            transition: 'border-color 0.2s',
+                                            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)'
+                                        }}>
                                             {formData.logo ? (
                                                 <img src={formData.logo} alt="Logo Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             ) : (
-                                                <ImageIcon size={30} color="var(--text-secondary)" />
+                                                <ImageIcon size={40} color="var(--text-secondary)" />
                                             )}
                                         </div>
-                                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{formData.logo ? 'Cambiar' : 'Logo'}</span>
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 'bold' }}>{formData.logo ? 'CAMBIAR LOGO' : 'SUBIR LOGO'}</span>
                                         <input type="file" accept="image/*" hidden onChange={handleLogoChange} />
                                     </label>
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
                                     <div className="form-group">
-                                        <label>Nombre del Evento</label>
+                                        <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', display: 'block' }}>Nombre del Evento</label>
                                         <input
                                             type="text" required
-                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)', color: 'white' }}
+                                            placeholder="Ej: Expo Feria 2026"
+                                            style={{ width: '100%', padding: '0.9rem', borderRadius: '0.75rem', border: '1px solid var(--glass-border)', background: 'rgba(15, 23, 42, 0.4)', color: 'white', outline: 'none' }}
                                             value={formData.name}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         />
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 480 ? '1fr' : '1fr 1fr', gap: '1rem' }}>
                                         <div className="form-group">
-                                            <label>Fecha Inicio</label>
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', display: 'block' }}>Fecha Inicio</label>
                                             <input
                                                 type="date" required
-                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: 'rgba(30,41,59,1)', color: 'white' }}
+                                                style={{ width: '100%', padding: '0.9rem', borderRadius: '0.75rem', border: '1px solid var(--glass-border)', background: 'rgba(15, 23, 42, 0.4)', color: 'white', outline: 'none' }}
                                                 value={formData.startDate}
                                                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                                             />
                                         </div>
                                         <div className="form-group">
-                                            <label>Fecha Fin</label>
+                                            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.4rem', display: 'block' }}>Fecha Fin</label>
                                             <input
                                                 type="date" required
-                                                style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: 'rgba(30,41,59,1)', color: 'white' }}
+                                                style={{ width: '100%', padding: '0.9rem', borderRadius: '0.75rem', border: '1px solid var(--glass-border)', background: 'rgba(15, 23, 42, 0.4)', color: 'white', outline: 'none' }}
                                                 value={formData.endDate}
                                                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                                             />
@@ -403,8 +435,8 @@ const Events = () => {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-                                        <div style={{ position: 'relative', flex: 1 }}>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+                                        <div style={{ position: 'relative', flex: '1 1 300px' }}>
                                             <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                                             <input
                                                 type="text"
@@ -432,7 +464,7 @@ const Events = () => {
                                                 color: 'white',
                                                 outline: 'none',
                                                 fontSize: '0.9rem',
-                                                minWidth: '200px'
+                                                flex: '1 1 200px'
                                             }}
                                             value={filterSupplier}
                                             onChange={(e) => setFilterSupplier(e.target.value)}
@@ -443,8 +475,7 @@ const Events = () => {
                                             ))}
                                         </select>
                                     </div>
-
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxHeight: '450px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingRight: '0.2rem' }}>
                                         {suppliers
                                             .filter(s => !filterSupplier || s.id.toString() === filterSupplier)
                                             .map(s => {

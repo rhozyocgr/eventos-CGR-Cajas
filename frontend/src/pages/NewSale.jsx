@@ -20,6 +20,7 @@ import {
     Store,
     Clock,
     X,
+    LogOut,
     Receipt,
     RefreshCcw,
     AlertTriangle,
@@ -70,6 +71,7 @@ const NewSale = () => {
     const [isPendingActive, setIsPendingActive] = useState(false);
     const [deletingTransaction, setDeletingTransaction] = useState(null);
     const [deleteReason, setDeleteReason] = useState('');
+    const [isCartExpanded, setIsCartExpanded] = useState(false);
 
     const deleteReasons = [
         'Creado por error',
@@ -608,69 +610,58 @@ const NewSale = () => {
     }
 
     return (
-        <div style={{ height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        <div className="pos-layout">
             {/* Nav POS */}
-            <div className="glass-card" style={{ padding: '0.7rem 1rem', borderRadius: 0, borderTop: 'none', borderLeft: 'none', borderRight: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 50 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                    <button onClick={handleReset} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '0.5rem', borderRadius: '0.5rem', cursor: 'pointer' }}>
+            <div className="pos-nav">
+                <div className="pos-nav-left">
+                    <button onClick={handleReset} className="btn-icon-sm">
                         <ArrowLeft size={18} />
                     </button>
-                    <div>
-                        <h4 style={{ margin: 0, fontSize: '0.9rem' }}>{selectedEvent.name}</h4>
-                        <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>
+                    <div className="pos-event-info">
+                        <h4>{selectedEvent.name}</h4>
+                        <p>
                             {new Date(selectedDay.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </p>
                     </div>
                 </div>
 
-                {/* BOTÓN CERRAR CAJA EN EL CENTRO */}
-                <button
-                    onClick={() => setShowClosingModal(true)}
-                    style={{
-                        background: 'var(--primary)',
-                        color: 'white',
-                        padding: '0.7rem 2rem',
-                        borderRadius: '0.8rem',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '1rem',
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.6rem',
-                        boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)'
-                    }}
-                >
-                    <X size={18} /> CERRAR CAJA
-                </button>
+                <div className="pos-nav-right">
+                    <button
+                        onClick={() => setShowClosingModal(true)}
+                        className="btn-refresh"
+                        title="Cerrar Caja"
+                        style={{ border: '1px solid rgba(99, 102, 241, 0.5)', background: 'rgba(99, 102, 241, 0.1)' }}
+                    >
+                        <LogOut size={18} color="var(--primary)" />
+                    </button>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <button
                         onClick={() => setShowPendingModal(true)}
-                        style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', color: '#f59e0b', padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}
+                        className="btn-refresh"
+                        style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', color: '#f59e0b', position: 'relative' }}
                     >
                         <Clock size={16} />
-                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Pendientes</span>
                         {pendingSales.length > 0 && (
-                            <span style={{ position: 'absolute', top: '-8px', right: '-8px', background: '#ef4444', color: 'white', fontSize: '0.7rem', width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', border: '2px solid #0f172a' }}>
+                            <span style={{ position: 'absolute', top: '-5px', right: '-5px', background: '#ef4444', color: 'white', fontSize: '0.6rem', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
                                 {pendingSales.length}
                             </span>
                         )}
                     </button>
-                    <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div>
-                            <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Total Sesión</p>
-                            <p style={{ margin: 0, fontSize: '1rem', fontWeight: 'bold', color: 'var(--accent)' }}>
-                                ₡{new Intl.NumberFormat('es-CR').format(sessionTotal)}
-                            </p>
+
+                    <div className="pos-total-info">
+                        <div style={{ display: window.innerWidth < 768 ? 'none' : 'block' }}>
+                            <p style={{ margin: 0, fontSize: '0.6rem', color: 'var(--text-secondary)' }}>Sesión</p>
                         </div>
+                        <p className="pos-total-val">
+                            ₡{new Intl.NumberFormat('es-CR').format(sessionTotal)}
+                        </p>
                     </div>
                 </div>
             </div>
 
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: 'row' }}>
+            <div className="pos-main">
                 {/* Catalog */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+                <div className="pos-catalog">
                     {/* Filters & Search */}
                     <div style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)' }}>
                         <div style={{ position: 'relative', marginBottom: '1rem' }}>
@@ -742,13 +733,24 @@ const NewSale = () => {
                 </div>
 
                 {/* Cart Bar */}
-                <div className="cart-sidebar" style={{ width: window.innerWidth < 768 ? '100%' : '350px' }}>
-                    <div style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontWeight: 'bold' }}>Carrito ({cart.length})</span>
-                        <button onClick={() => setCart([])} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer' }}>Vaciar</button>
+                <div className={`pos-cart ${isCartExpanded ? 'expanded' : ''}`} style={{ height: window.innerWidth < 768 ? (isCartExpanded ? '60%' : '60px') : '100%', maxHeight: window.innerWidth < 768 ? (isCartExpanded ? '70vh' : '60px') : '100%' }}>
+                    <div
+                        onClick={() => window.innerWidth < 768 && setIsCartExpanded(!isCartExpanded)}
+                        style={{ padding: '1rem', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <ShoppingCart size={18} color="var(--primary)" />
+                            <span style={{ fontWeight: 'bold' }}>Carrito ({cart.length})</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            {isCartExpanded && <button onClick={(e) => { e.stopPropagation(); setCart([]); }} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.8rem', cursor: 'pointer' }}>Vaciar</button>}
+                            <div style={{ display: window.innerWidth >= 768 ? 'none' : 'block' }}>
+                                {isCartExpanded ? <X size={20} /> : <Plus size={20} color="var(--primary)" />}
+                            </div>
+                        </div>
                     </div>
 
-                    <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem' }}>
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem', display: (!isCartExpanded && window.innerWidth < 768) ? 'none' : 'block' }}>
                         {cart.map(item => (
                             <div key={item.productId} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', marginBottom: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                                 <div style={{ flex: 1 }}>
@@ -764,7 +766,7 @@ const NewSale = () => {
                         ))}
                     </div>
 
-                    <div style={{ padding: '1rem', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid var(--glass-border)' }}>
+                    <div style={{ padding: '1rem', background: 'rgba(0,0,0,0.3)', borderTop: '1px solid var(--glass-border)', display: (!isCartExpanded && window.innerWidth < 768) ? 'none' : 'block' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                             <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Total</span>
                             <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--accent)' }}>₡{new Intl.NumberFormat('es-CR').format(cartTotal)}</span>
@@ -772,7 +774,8 @@ const NewSale = () => {
                         <button
                             disabled={cart.length === 0}
                             onClick={() => setShowCheckout(true)}
-                            style={{ width: '100%', padding: '1rem', borderRadius: '0.8rem', background: 'var(--primary)', color: 'white', border: 'none', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', opacity: cart.length === 0 ? 0.5 : 1 }}
+                            className="btn-primary"
+                            style={{ width: '100%', padding: '1rem', borderRadius: '0.8rem', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', opacity: cart.length === 0 ? 0.5 : 1, boxShadow: '0 10px 20px rgba(99, 102, 241, 0.2)' }}
                         >
                             PAGAR (₡{new Intl.NumberFormat('es-CR').format(cartTotal)})
                         </button>
@@ -900,36 +903,86 @@ const NewSale = () => {
                             <button onClick={() => setShowPendingModal(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}><X size={24} /></button>
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {pendingSales.map(transaction => (
-                                <div key={transaction.id} className="glass-card" style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <div>
+                                <div key={transaction.id} className="glass-card" style={{
+                                    padding: window.innerWidth < 768 ? '1rem' : '1.2rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '1rem',
+                                    background: 'rgba(245, 158, 11, 0.05)',
+                                    border: '1px solid rgba(245, 158, 11, 0.2)'
+                                }}>
+                                    <div style={{
+                                        display: 'flex',
+                                        flexDirection: window.innerWidth < 500 ? 'column' : 'row',
+                                        justifyContent: 'space-between',
+                                        alignItems: window.innerWidth < 500 ? 'flex-start' : 'center',
+                                        gap: '1rem'
+                                    }}>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem' }}>
                                                 <Receipt size={18} color="#f59e0b" />
-                                                <span style={{ fontWeight: '900', fontSize: '1.1rem' }}>Transacción #{transaction.id}</span>
+                                                <span style={{ fontWeight: '900', fontSize: window.innerWidth < 768 ? '1rem' : '1.1rem' }}>#{transaction.id}</span>
                                             </div>
                                             {transaction.observation && (
-                                                <p style={{ margin: '0.2rem 0', fontSize: '1rem', color: '#f59e0b', fontWeight: '700' }}>
+                                                <p style={{
+                                                    margin: '0.2rem 0',
+                                                    fontSize: window.innerWidth < 768 ? '0.9rem' : '1rem',
+                                                    color: '#f59e0b',
+                                                    fontWeight: '700',
+                                                    wordBreak: 'break-word'
+                                                }}>
                                                     📝 {transaction.observation}
                                                 </p>
                                             )}
-                                            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                                                 {new Date(transaction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </p>
                                         </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <span style={{ fontWeight: '900', color: 'var(--accent)', fontSize: '1.4rem', display: 'block' }}>₡{new Intl.NumberFormat('es-CR').format(transaction.total)}</span>
-                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                        <div style={{
+                                            textAlign: window.innerWidth < 500 ? 'left' : 'right',
+                                            width: window.innerWidth < 500 ? '100%' : 'auto',
+                                            display: 'flex',
+                                            flexDirection: window.innerWidth < 500 ? 'row-reverse' : 'column',
+                                            justifyContent: 'space-between',
+                                            alignItems: window.innerWidth < 500 ? 'center' : 'flex-end',
+                                            gap: '0.5rem'
+                                        }}>
+                                            <span style={{
+                                                fontWeight: '900',
+                                                color: 'var(--accent)',
+                                                fontSize: window.innerWidth < 768 ? '1.2rem' : '1.4rem'
+                                            }}>
+                                                ₡{new Intl.NumberFormat('es-CR').format(transaction.total)}
+                                            </span>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                 <button
                                                     onClick={() => setDeletingTransaction(transaction)}
-                                                    style={{ flex: 1, padding: '0.6rem', borderRadius: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                                                    className="btn-refresh"
+                                                    style={{ padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+                                                    title="Eliminar"
                                                 >
-                                                    <Trash2 size={16} /> Eliminar
+                                                    <Trash2 size={16} />
                                                 </button>
                                                 <button
                                                     onClick={() => setSelectedPendingSale(transaction)}
-                                                    style={{ flex: 2, padding: '0.6rem', borderRadius: '0.5rem', background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+                                                    style={{
+                                                        padding: '0.6rem 1.5rem',
+                                                        borderRadius: '2rem',
+                                                        background: 'linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%)',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        fontWeight: '800',
+                                                        fontSize: '0.85rem',
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.5px',
+                                                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                                                 >
                                                     Cobrar
                                                 </button>
@@ -1136,26 +1189,42 @@ const NewSale = () => {
             {showSuccessOverlay && (
                 <div style={{
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: lastPaymentType.toLowerCase().includes('pendiente') ? '#f59e0b' : 'var(--accent)',
+                    backgroundColor: lastPaymentType.toLowerCase().includes('pendiente') ? '#f59e0b' : '#10b981',
                     display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', zIndex: 5000,
-                    animation: 'fadeIn 0.3s ease'
+                    alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+                    animation: 'fadeIn 0.3s ease',
+                    padding: '2rem',
+                    textAlign: 'center'
                 }}>
                     <div style={{
-                        background: 'white', borderRadius: '50%', padding: '2rem',
-                        marginBottom: '2rem', boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-                        animation: 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                        background: 'white', borderRadius: '50%', padding: window.innerWidth < 768 ? '1.5rem' : '2rem',
+                        marginBottom: '1.5rem', boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                        animation: 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>
                         {lastPaymentType.toLowerCase().includes('pendiente') ? (
-                            <Clock size={100} color="#f59e0b" />
+                            <Clock size={window.innerWidth < 768 ? 60 : 100} color="#f59e0b" />
                         ) : (
-                            <CheckCircle size={100} color="var(--accent)" />
+                            <CheckCircle size={window.innerWidth < 768 ? 60 : 100} color="#10b981" />
                         )}
                     </div>
-                    <h1 style={{ fontSize: '4rem', color: 'white', fontWeight: '900', margin: 0, textShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>
-                        {lastPaymentType.toLowerCase().includes('pendiente') ? 'VENTA PENDIENTE' : '¡VENTA ÉXITO!'}
+                    <h1 style={{
+                        fontSize: window.innerWidth < 768 ? '2.5rem' : '4rem',
+                        color: 'white',
+                        fontWeight: '900',
+                        margin: 0,
+                        textShadow: '0 4px 10px rgba(0,0,0,0.2)',
+                        lineHeight: 1.1
+                    }}>
+                        {lastPaymentType.toLowerCase().includes('pendiente') ? 'VENTA PENDIENTE' : '¡VENTA EXITOSA!'}
                     </h1>
-                    <div style={{ fontSize: '2.5rem', color: 'white', opacity: 0.9, marginTop: '1rem', fontWeight: '700' }}>
+                    <div style={{
+                        fontSize: window.innerWidth < 768 ? '1.8rem' : '2.5rem',
+                        color: 'white',
+                        opacity: 0.9,
+                        marginTop: '1rem',
+                        fontWeight: '700'
+                    }}>
                         ₡{new Intl.NumberFormat('es-CR').format(lastSaleTotal)}
                     </div>
                 </div>

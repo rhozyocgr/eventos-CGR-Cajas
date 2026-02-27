@@ -56,19 +56,19 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <div>
-                    <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: '900', color: 'var(--primary)' }}>Panel de Control</h1>
-                    <p style={{ color: 'var(--text-secondary)', marginTop: '0.4rem' }}>Bienvenido de nuevo, {user?.name}</p>
+        <div className="container dashboard-container">
+            <div className="dashboard-header">
+                <div className="title-section">
+                    <h1>Panel de Control</h1>
+                    <p>Bienvenido, {user?.name}</p>
                 </div>
-                <button onClick={fetchStats} className="btn btn-secondary" style={{ padding: '0.6rem' }}>
+                <button onClick={fetchStats} className="btn-refresh" title="Actualizar datos">
                     <RefreshCcw size={20} className={loading ? 'spin' : ''} />
                 </button>
             </div>
 
             {/* Stats Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+            <div className="stats-grid">
                 <div className="glass-card hover-glow" style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
                     <div style={{ position: 'absolute', top: '-10px', right: '-10px', opacity: 0.1 }}>
                         <DollarSign size={80} />
@@ -106,14 +106,14 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
+            <div className="charts-grid">
                 {/* Top Products Chart */}
-                <div className="glass-card" style={{ padding: '1.5rem', minHeight: '450px' }}>
-                    <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                <div className="glass-card chart-card">
+                    <h3 className="chart-title">
                         <ShoppingBag size={20} color="var(--primary)" />
-                        Top 10 Productos más vendidos
+                        Top 10 Productos
                     </h3>
-                    <div style={{ width: '100%', height: 350 }}>
+                    <div className="chart-container">
                         {stats?.topProducts?.length > 0 ? (
                             <ResponsiveContainer>
                                 <BarChart data={stats?.topProducts} layout="vertical" margin={{ left: 10, right: 30 }}>
@@ -151,12 +151,12 @@ const Dashboard = () => {
                 </div>
 
                 {/* Methods Distribution */}
-                <div className="glass-card" style={{ padding: '1.5rem', minHeight: '450px' }}>
-                    <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                <div className="glass-card chart-card">
+                    <h3 className="chart-title">
                         <DollarSign size={20} color="var(--accent)" />
-                        Ventas Hoy por Método de Pago
+                        Ventas por Pago
                     </h3>
-                    <div style={{ width: '100%', height: 350, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="chart-container-pie">
                         {stats?.paymentStats?.length > 0 ? (
                             <>
                                 <ResponsiveContainer>

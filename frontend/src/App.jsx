@@ -64,7 +64,7 @@ const MainLayout = ({ children }) => {
                 {children}
             </main>
             <nav className={`mobile-nav ${isCollapsed ? 'collapsed' : ''}`}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                <div className="nav-menu-container">
                     <button
                         className="collapse-btn"
                         onClick={() => setIsCollapsed(!isCollapsed)}
@@ -79,21 +79,11 @@ const MainLayout = ({ children }) => {
                     {user?.role === 'admin' && (
                         <>
                             {!isCollapsed && (
-                                <p style={{
-                                    paddingLeft: '1.25rem',
-                                    fontSize: '0.65rem',
-                                    color: 'var(--primary)',
-                                    fontWeight: 'bold',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '1px',
-                                    marginTop: '1.5rem',
-                                    marginBottom: '0.5rem',
-                                    opacity: 0.8
-                                }}>
+                                <p className="admin-label">
                                     Administración
                                 </p>
                             )}
-                            {isCollapsed && <div style={{ height: '1px', background: 'var(--glass-border)', margin: '1rem 0.5rem' }} />}
+                            {isCollapsed && <div className="admin-divider" />}
 
                             <NavItem to="/products" icon={Package} label="Productos" />
                             <NavItem to="/suppliers" icon={Truck} label="Proveedores" />
@@ -105,16 +95,7 @@ const MainLayout = ({ children }) => {
                     )}
                 </div>
 
-                <div style={{
-                    marginTop: 'auto',
-                    paddingTop: '1rem',
-                    borderTop: '1px solid var(--glass-border)',
-                    width: '100%',
-                    display: 'flex',
-                    flexDirection: isCollapsed ? 'column' : 'row',
-                    alignItems: 'center',
-                    gap: isCollapsed ? '1rem' : '0.75rem'
-                }}>
+                <div className={`nav-profile-container ${isCollapsed ? 'collapsed' : ''}`}>
                     <div style={{
                         width: '40px',
                         height: '40px',
