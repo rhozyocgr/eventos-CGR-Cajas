@@ -13,6 +13,7 @@ import Cashier from './pages/Cashier';
 import Users from './pages/Users';
 import Authorizations from './pages/Authorizations';
 import MyClosings from './pages/MyClosings';
+import Dashboard from './pages/Dashboard';
 import { version } from '../package.json';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -35,31 +36,6 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 };
 
 // Placeholder Components
-const Dashboard = () => {
-    const { user, logout } = useAuth();
-    return (
-        <div className="container">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h1>Dashboard de Eventos</h1>
-
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                <div className="glass-card" style={{ padding: '1.5rem' }}>
-                    <h3>Ventas Hoy</h3>
-                    <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--primary)', marginTop: '1rem' }}>₡0.00</p>
-                </div>
-                <div className="glass-card" style={{ padding: '1.5rem' }}>
-                    <h3>Productos</h3>
-                    <p style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--accent)', marginTop: '1rem' }}>0</p>
-                </div>
-                <div className="glass-card" style={{ padding: '1.5rem' }}>
-                    <h3>Proveedores</h3>
-                    <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#f59e0b', marginTop: '1rem' }}>0</p>
-                </div>
-            </div>
-        </div>
-    );
-};
 
 const NavItem = ({ to, icon: Icon, label }) => {
     const location = useLocation();

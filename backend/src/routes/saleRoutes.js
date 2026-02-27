@@ -14,10 +14,13 @@ import {
     closeCash,
     getPendingOpenings,
     authorizeOpening,
-    confirmOpening
+    confirmOpening,
+    getDashboardStats
 } from '../controllers/saleController.js';
 
 const router = express.Router();
+
+router.get('/dashboard-stats', getDashboardStats);
 
 router.post('/', createSale);
 router.get('/payment-types', getPaymentTypes);

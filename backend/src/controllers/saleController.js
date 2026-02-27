@@ -160,6 +160,83 @@ export const confirmOpening = async (req, res) => {
     }
 };
 
+export const getDashboardStats = async (req, res) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Ventas de hoy
+        const todaySales = await Transaction.findAll({
+            where: {
+                timestamp: {
+                    [Op.gte]: today
+                }
+            },
+            attributes: [
+                [sequelize.fn('SUM', sequelize.col('total')), 'total'],
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+            ]
+        });
+
+        const totalToday = parseFloat(todaySales[0]?.dataValues?.total || 0);
+        const countToday = todaySales[0]?.dataValues?.count || 0;
+
+        // Distribución por método de pago hoy
+        const paymentStatsRaw = await Transaction.findAll({
+            where: {
+                timestamp: {
+                    [Op.gte]: today
+                }
+            },
+            include: [{ model: PaymentType, attributes: ['name'] }],
+            attributes: [
+                'PaymentTypeId',
+                [sequelize.fn('SUM', sequelize.col('total')), 'totalValue']
+            ],
+            group: ['PaymentTypeId', 'PaymentType.id']
+        });
+
+        const paymentStats = paymentStatsRaw.map(ps => ({
+            name: ps.PaymentType?.name || 'Otro',
+            value: parseFloat(ps.dataValues.totalValue || 0)
+        }));
+
+        // Top 10 productos más vendidos (de todos los tiempos para el dashboard)
+        const topProductsRaw = await Sale.findAll({
+            attributes: [
+                'ProductId',
+                [sequelize.fn('SUM', sequelize.col('quantity')), 'totalQuantity']
+            ],
+            include: [{ model: Product, attributes: ['name'] }],
+            group: ['ProductId', 'Product.id'],
+            order: [[sequelize.literal('totalQuantity'), 'DESC']],
+            limit: 10
+        });
+
+        const topProducts = topProductsRaw.map(tp => ({
+            name: tp.Product?.name || 'Desconocido',
+            total: parseInt(tp.dataValues.totalQuantity || 0)
+        }));
+
+        const productCount = await Product.count();
+        const supplierCount = await Supplier.count();
+
+        res.json({
+            summary: {
+                totalToday,
+                countToday,
+                productCount,
+                supplierCount
+            },
+            paymentStats,
+            topProducts
+        });
+    } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
 export const closeCash = async (req, res) => {
     try {
         const { id } = req.params; // ID de la apertura (CashOpening)
