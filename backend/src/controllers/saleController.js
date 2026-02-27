@@ -162,15 +162,24 @@ export const confirmOpening = async (req, res) => {
 
 export const getDashboardStats = async (req, res) => {
     try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Usamos un rango que incluya las últimas 24 horas para evitar problemas de zona horaria
+        // o mejor, el día actual en la zona de la base de datos
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
 
-        // Ventas de hoy
+        // Si estamos muy temprano en UTC (noche en CR), retrocedemos un poco
+        // para capturar las ventas de la noche anterior si es necesario, 
+        // pero lo ideal es buscar por el día calendario local.
+        // Como parche rápido para el dashboard "Hoy":
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        // Ventas de hoy (calendario)
         const todaySales = await Transaction.findAll({
             where: {
-                timestamp: {
-                    [Op.gte]: today
-                }
+                [Op.or]: [
+                    { timestamp: { [Op.gte]: startOfToday } },
+                    { SalesDayId: { [Op.in]: sequelize.literal(`(SELECT id FROM SalesDays WHERE date = '${todayStr}')`) } }
+                ]
             },
             attributes: [
                 [sequelize.fn('SUM', sequelize.col('total')), 'total'],
@@ -182,12 +191,15 @@ export const getDashboardStats = async (req, res) => {
         const countToday = todaySales[0]?.dataValues?.count || 0;
 
         // Distribución por método de pago hoy
+        const todayCondition = {
+            [Op.or]: [
+                { timestamp: { [Op.gte]: startOfToday } },
+                { SalesDayId: { [Op.in]: sequelize.literal(`(SELECT id FROM SalesDays WHERE date = '${todayStr}')`) } }
+            ]
+        };
+
         const paymentStatsRaw = await Transaction.findAll({
-            where: {
-                timestamp: {
-                    [Op.gte]: today
-                }
-            },
+            where: todayCondition,
             include: [{ model: PaymentType, attributes: ['name'] }],
             attributes: [
                 'PaymentTypeId',
@@ -318,6 +330,8 @@ export const updatePaymentType = async (req, res) => {
 export const getSalesSummary = async (req, res) => {
     try {
         const { salesDayId, userId, since } = req.query;
+        console.log(`FETCH SUMMARY - Day: ${salesDayId}, User: ${userId}, Since: ${since}`);
+
         if (!salesDayId) throw new Error('salesDayId is required');
 
         // Find the last cash closing for this day
@@ -333,7 +347,7 @@ export const getSalesSummary = async (req, res) => {
         const startTime = since ? new Date(since) : (lastClosing ? lastClosing.timestamp : null);
 
         if (startTime) {
-            transactionWhere.timestamp = { [Op.gt]: startTime };
+            transactionWhere.timestamp = { [Op.gte]: startTime };
         }
 
         const transactions = await Transaction.findAll({
