@@ -472,6 +472,30 @@ const NewSale = () => {
         );
     }
 
+    if (cashOpening && cashOpening.status === 'denied') {
+        return (
+            <div className="container" style={{ textAlign: 'center', padding: '5rem 0' }}>
+                <div className="glass-card" style={{ padding: '3rem', maxWidth: '500px', margin: '0 auto', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                    <div style={{ marginBottom: '2rem' }}>
+                        <XCircle size={64} color="#ef4444" />
+                    </div>
+                    <h2 style={{ marginBottom: '1rem', color: '#ef4444' }}>Solicitud Denegada</h2>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+                        Tu solicitud de apertura de caja ha sido denegada por un administrador. <br />
+                        Por favor, contacta a un supervisor para más información.
+                    </p>
+                    <button
+                        onClick={handleReset}
+                        className="btn btn-secondary"
+                        style={{ width: '100%', padding: '1rem' }}
+                    >
+                        Volver al inicio
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (!cashOpening || cashOpening.status !== 'authorized') {
         return (
             <>

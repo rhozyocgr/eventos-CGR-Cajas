@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart, ChevronLeft, LogOut, Calculator, Users as UsersIcon } from 'lucide-react';
+import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart, ChevronLeft, LogOut, Calculator, Users as UsersIcon, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -11,6 +11,7 @@ import Events from './pages/Events';
 import NewSale from './pages/NewSale';
 import Cashier from './pages/Cashier';
 import Users from './pages/Users';
+import Authorizations from './pages/Authorizations';
 import { version } from '../package.json';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -96,11 +97,34 @@ const MainLayout = ({ children }) => {
                     </button>
                     <NavItem to="/" icon={Home} label="Inicio" />
                     <NavItem to="/new-sale" icon={ShoppingCart} label="Vender" />
-                    <NavItem to="/products" icon={Package} label="Productos" />
-                    <NavItem to="/suppliers" icon={Truck} label="Proveedores" />
-                    <NavItem to="/events" icon={Calendar} label="Eventos" />
-                    <NavItem to="/payments" icon={Calculator} label="Cierre de cajas" />
-                    {user?.role === 'admin' && <NavItem to="/users" icon={UsersIcon} label="Usuarios" />}
+
+                    {user?.role === 'admin' && (
+                        <>
+                            {!isCollapsed && (
+                                <p style={{
+                                    paddingLeft: '1.25rem',
+                                    fontSize: '0.65rem',
+                                    color: 'var(--primary)',
+                                    fontWeight: 'bold',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '1px',
+                                    marginTop: '1.5rem',
+                                    marginBottom: '0.5rem',
+                                    opacity: 0.8
+                                }}>
+                                    Administración
+                                </p>
+                            )}
+                            {isCollapsed && <div style={{ height: '1px', background: 'var(--glass-border)', margin: '1rem 0.5rem' }} />}
+
+                            <NavItem to="/products" icon={Package} label="Productos" />
+                            <NavItem to="/suppliers" icon={Truck} label="Proveedores" />
+                            <NavItem to="/events" icon={Calendar} label="Eventos" />
+                            <NavItem to="/payments" icon={Calculator} label="Cierre de cajas" />
+                            <NavItem to="/authorizations" icon={ShieldCheck} label="Autorizaciones" />
+                            <NavItem to="/users" icon={UsersIcon} label="Usuarios" />
+                        </>
+                    )}
                 </div>
 
                 <div style={{
@@ -217,10 +241,11 @@ function App() {
                     <MainLayout>
                         <Routes>
                             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                            <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-                            <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
-                            <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+                            <Route path="/products" element={<ProtectedRoute adminOnly={true}><Products /></ProtectedRoute>} />
+                            <Route path="/suppliers" element={<ProtectedRoute adminOnly={true}><Suppliers /></ProtectedRoute>} />
+                            <Route path="/events" element={<ProtectedRoute adminOnly={true}><Events /></ProtectedRoute>} />
                             <Route path="/payments" element={<ProtectedRoute adminOnly={true}><Cashier /></ProtectedRoute>} />
+                            <Route path="/authorizations" element={<ProtectedRoute adminOnly={true}><Authorizations /></ProtectedRoute>} />
                             <Route path="/users" element={<ProtectedRoute adminOnly={true}><Users /></ProtectedRoute>} />
                             <Route path="/new-sale" element={<ProtectedRoute><NewSale /></ProtectedRoute>} />
                             <Route path="/login" element={<Login />} />
