@@ -6,9 +6,9 @@ export const createSale = async (req, res) => {
     try {
         const { salesDayId, items, paymentTypeId, observation, userId } = req.body;
 
-        // Validar apertura autorizada
+        // Validar apertura activa
         const activeOpening = await CashOpening.findOne({
-            where: { SalesDayId: salesDayId, UserId: userId, status: 'authorized' }
+            where: { SalesDayId: salesDayId, UserId: userId, status: 'active' }
         });
 
         if (!activeOpening) {
@@ -92,8 +92,9 @@ export const getActiveOpening = async (req, res) => {
             where: {
                 SalesDayId: salesDayId,
                 UserId: userId,
-                status: ['pending', 'authorized', 'active']
-            }
+                status: ['pending', 'authorized', 'active', 'denied']
+            },
+            order: [['id', 'DESC']]
         });
         res.json(opening);
     } catch (error) {
@@ -141,8 +142,12 @@ export const confirmOpening = async (req, res) => {
         const { initialCash } = req.body;
 
         const opening = await CashOpening.findByPk(id);
-        if (!opening) throw new Error('Apertura no encontrada');
-        if (opening.status !== 'authorized') throw new Error('La apertura debe estar autorizada por un administrador');
+        console.log(`Intentando confirmar apertura ID: ${id}. Actual:`, opening?.get({ plain: true }));
+
+        if (!opening) throw new Error('Apertura no encontrada en la base de datos');
+        if (opening.status !== 'authorized') {
+            throw new Error(`La caja no se puede confirmar porque su estado es '${opening.status}' (se requiere 'authorized')`);
+        }
 
         opening.initialCash = initialCash || 0;
         opening.status = 'active';
@@ -151,6 +156,7 @@ export const confirmOpening = async (req, res) => {
 
         res.json({ message: 'Caja abierta correctamente', opening });
     } catch (error) {
+        console.error('ERROR EN confirmOpening:', error.message);
         res.status(400).json({ error: error.message });
     }
 };

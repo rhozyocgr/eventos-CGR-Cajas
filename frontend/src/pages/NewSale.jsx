@@ -205,7 +205,8 @@ const NewSale = () => {
             toast.success('Caja abierta correctamente');
             fetchSessionTotal(selectedDay.id, res.data.opening);
         } catch (err) {
-            toast.error('Error al abrir la caja');
+            const errorMsg = err.response?.data?.error || err.message;
+            toast.error('Error al abrir la caja: ' + errorMsg);
         }
     };
 
