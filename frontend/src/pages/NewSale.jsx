@@ -459,8 +459,9 @@ const NewSale = () => {
             </div>
         );
     }
-    if (!cashOpening || cashOpening.status === 'pending') {
+    if (!cashOpening || cashOpening.status === 'pending' || cashOpening.status === 'closed') {
         const isPending = cashOpening?.status === 'pending';
+        const isClosed = cashOpening?.status === 'closed';
         return (
             <div className="container" style={{ textAlign: 'center', padding: '5rem 0' }}>
                 <div className="glass-card" style={{ padding: '3.5rem 2rem', maxWidth: '500px', margin: '0 auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
@@ -474,12 +475,12 @@ const NewSale = () => {
                         )}
                     </div>
                     <h2 style={{ marginBottom: '1rem', fontSize: '1.8rem' }}>
-                        {isPending ? 'Esperando Autorización' : 'Caja no Iniciada'}
+                        {isPending ? 'Esperando Autorización' : (isClosed ? 'Caja Cerrada' : 'Caja no Iniciada')}
                     </h2>
                     <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', lineHeight: '1.6' }}>
                         {isPending
                             ? 'Tu solicitud de apertura ha sido enviada. Un administrador debe autorizar tu sesión para que puedas indicar el efectivo inicial.'
-                            : 'Es necesario solicitar autorización a un administrador para poder abrir la caja.'}
+                            : (isClosed ? 'Tu sesión para este día ha finalizado. Si necesitas abrir la caja nuevamente, solicita una nueva autorización.' : 'Es necesario solicitar autorización a un administrador para poder abrir la caja.')}
                     </p>
                     {isPending ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

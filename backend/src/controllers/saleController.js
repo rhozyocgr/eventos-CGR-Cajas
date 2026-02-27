@@ -91,8 +91,7 @@ export const getActiveOpening = async (req, res) => {
         const opening = await CashOpening.findOne({
             where: {
                 SalesDayId: salesDayId,
-                UserId: userId,
-                status: ['pending', 'authorized', 'active', 'denied']
+                UserId: userId
             },
             order: [['id', 'DESC']]
         });
