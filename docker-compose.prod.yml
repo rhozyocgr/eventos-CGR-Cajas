@@ -9,7 +9,8 @@ services:
     volumes:
       - db_prod_data:/var/lib/mysql
     networks:
-      - event-network
+      - default
+      - nginxproxymanager_default
 
   backend:
     build:
@@ -24,7 +25,8 @@ services:
     depends_on:
       - db
     networks:
-      - event-network
+      - default
+      - nginxproxymanager_default
 
   frontend:
     build:
@@ -41,12 +43,13 @@ services:
     depends_on:
       - backend
     networks:
-      - event-network
+      - default
+      - nginxproxymanager_default
 
 volumes:
   db_prod_data:
 
 
 networks:
-  event-network:
-    driver: bridge
+  nginxproxymanager_default:
+    external: true
