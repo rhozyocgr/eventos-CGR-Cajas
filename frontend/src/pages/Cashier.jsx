@@ -423,8 +423,8 @@ const Cashier = () => {
             return;
         }
 
-        if (summary?.totalGeneral > 0) {
-            toast.error('No se puede realizar el corte definitivo: existen ventas actuales que deben ser cerradas primero.', {
+        if (summary?.totalGeneral > 0 || summary?.totalPendiente > 0) {
+            toast.error('No se puede realizar el corte definitivo: existen ventas o pendientes actuales que deben ser cerradas primero.', {
                 icon: '🚫',
                 style: {
                     background: 'rgba(239, 68, 68, 0.2)',
@@ -665,19 +665,19 @@ const Cashier = () => {
                     <button
                         className="btn"
                         onClick={handleSaveFinalClosing}
-                        disabled={saving || closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && summary.totalGeneral > 0)}
+                        disabled={saving || closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && (summary.totalGeneral > 0 || summary.totalPendiente > 0))}
                         onMouseEnter={() => setTooltipType('final')}
                         onMouseLeave={() => setTooltipType(null)}
                         style={{
-                            background: (closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && summary.totalGeneral > 0))
+                            background: (closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && (summary.totalGeneral > 0 || summary.totalPendiente > 0)))
                                 ? 'linear-gradient(135deg, #4b5563 0%, #1f2937 100%)'
                                 : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
                             color: 'white',
-                            boxShadow: (closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && summary.totalGeneral > 0))
+                            boxShadow: (closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && (summary.totalGeneral > 0 || summary.totalPendiente > 0)))
                                 ? 'none'
                                 : '0 4px 15px rgba(16, 185, 129, 0.3)',
-                            opacity: (saving || closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && summary.totalGeneral > 0)) ? 0.6 : 1,
-                            cursor: (saving || closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && summary.totalGeneral > 0)) ? 'not-allowed' : 'pointer',
+                            opacity: (saving || closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && (summary.totalGeneral > 0 || summary.totalPendiente > 0))) ? 0.6 : 1,
+                            cursor: (saving || closings.length === 0 || (closings.length > 0 && closings[0].isFinal) || (summary && (summary.totalGeneral > 0 || summary.totalPendiente > 0))) ? 'not-allowed' : 'pointer',
                             position: 'relative',
                             transition: 'all 0.3s ease'
                         }}
@@ -693,7 +693,7 @@ const Cashier = () => {
                                 marginTop: '15px',
                                 background: 'rgba(10, 10, 10, 0.95)',
                                 backdropFilter: 'blur(25px)',
-                                border: (summary?.totalGeneral > 0 || closings.length === 0 || (closings.length > 0 && closings[0].isFinal))
+                                border: ((summary?.totalGeneral > 0 || summary?.totalPendiente > 0) || closings.length === 0 || (closings.length > 0 && closings[0].isFinal))
                                     ? '1px solid rgba(239, 68, 68, 0.5)'
                                     : '1px solid rgba(16, 185, 129, 0.5)',
                                 color: '#fff',
@@ -702,7 +702,7 @@ const Cashier = () => {
                                 fontSize: '0.85rem',
                                 fontWeight: '600',
                                 whiteSpace: 'nowrap',
-                                boxShadow: `0 20px 50px rgba(0,0,0,0.7), 0 0 30px ${(summary?.totalGeneral > 0 || closings.length === 0 || (closings.length > 0 && closings[0].isFinal)) ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)'}`,
+                                boxShadow: `0 20px 50px rgba(0,0,0,0.7), 0 0 30px ${((summary?.totalGeneral > 0 || summary?.totalPendiente > 0) || closings.length === 0 || (closings.length > 0 && closings[0].isFinal)) ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)'}`,
                                 zIndex: 5000,
                                 display: 'flex',
                                 alignItems: 'center',
@@ -710,28 +710,28 @@ const Cashier = () => {
                                 animation: 'fadeInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
                             }}>
                                 <div style={{
-                                    background: (summary?.totalGeneral > 0 || closings.length === 0 || (closings.length > 0 && closings[0].isFinal))
+                                    background: ((summary?.totalGeneral > 0 || summary?.totalPendiente > 0) || closings.length === 0 || (closings.length > 0 && closings[0].isFinal))
                                         ? 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)'
                                         : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                                     padding: '8px',
                                     borderRadius: '10px',
                                     color: '#fff',
                                     display: 'flex',
-                                    boxShadow: `0 0 15px ${(summary?.totalGeneral > 0 || closings.length === 0 || (closings.length > 0 && closings[0].isFinal)) ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`
+                                    boxShadow: `0 0 15px ${((summary?.totalGeneral > 0 || summary?.totalPendiente > 0) || closings.length === 0 || (closings.length > 0 && closings[0].isFinal)) ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`
                                 }}>
-                                    {(summary?.totalGeneral > 0 || closings.length === 0 || (closings.length > 0 && closings[0].isFinal)) ? <X size={16} /> : <TrendingUp size={16} />}
+                                    {((summary?.totalGeneral > 0 || summary?.totalPendiente > 0) || closings.length === 0 || (closings.length > 0 && closings[0].isFinal)) ? <X size={16} /> : <TrendingUp size={16} />}
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                    <span style={{ color: (summary?.totalGeneral > 0 || closings.length === 0 || (closings.length > 0 && closings[0].isFinal)) ? '#ef4444' : '#10b981', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                        {(closings.length > 0 && closings[0].isFinal) ? 'Cierre Completado' : ((summary?.totalGeneral > 0 || closings.length === 0) ? 'Acción Restringida' : 'Reporte Maestro')}
+                                    <span style={{ color: ((summary?.totalGeneral > 0 || summary?.totalPendiente > 0) || closings.length === 0 || (closings.length > 0 && closings[0].isFinal)) ? '#ef4444' : '#10b981', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                        {(closings.length > 0 && closings[0].isFinal) ? 'Cierre Completado' : (((summary?.totalGeneral > 0 || summary?.totalPendiente > 0) || closings.length === 0) ? 'Acción Restringida' : 'Reporte Maestro')}
                                     </span>
                                     <span>
                                         {closings.length === 0
                                             ? 'No hay registros de cortes para consolidar'
                                             : ((closings.length > 0 && closings[0].isFinal)
                                                 ? 'El día ya cuenta con un cierre definitivo'
-                                                : (summary?.totalGeneral > 0
-                                                    ? 'Primero cierre las ventas actuales con un corte normal'
+                                                : ((summary?.totalGeneral > 0 || summary?.totalPendiente > 0)
+                                                    ? 'Primero resuelva las ventas y/o pendientes actuales'
                                                     : 'Consolidar todos los cortes en un reporte final del día'))
                                         }
                                     </span>
@@ -850,12 +850,7 @@ const Cashier = () => {
                                 ₡{new Intl.NumberFormat('es-CR').format(summary.totalComisiones)}
                             </h3>
                         </div>
-                        <div className="glass-card" style={{ padding: '1.5rem', background: 'rgba(245, 158, 11, 0.05)', borderColor: 'rgba(245, 158, 11, 0.2)' }}>
-                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#f59e0b' }}>VENTAS PENDIENTES</p>
-                            <h3 style={{ margin: '0.5rem 0 0 0', fontSize: '1.5rem', color: '#f59e0b' }}>
-                                ₡{new Intl.NumberFormat('es-CR').format(summary.totalPendiente || 0)}
-                            </h3>
-                        </div>
+
                         {summary.totalPendiente > 0 && (
                             <div className="glass-card hover-glow"
                                 onClick={handleViewPending}
@@ -1314,112 +1309,112 @@ const Cashier = () => {
                             >
                                 Listo
                             </button>
+                        </div>
 
-                            {/* Delete confirmation sub-modal */}
-                            {deletingTransaction && (
-                                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000, padding: '1rem' }}>
-                                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
-                                        <Trash2 size={40} color="#ef4444" style={{ marginBottom: '1rem' }} />
-                                        <h3 style={{ marginBottom: '0.5rem' }}>¿Eliminar Pendiente?</h3>
-                                        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-                                            Esta acción no se puede deshacer. Selecciona un motivo:
-                                        </p>
+                        {/* Delete confirmation sub-modal */}
+                        {deletingTransaction && (
+                            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000, padding: '1rem' }}>
+                                <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
+                                    <Trash2 size={40} color="#ef4444" style={{ marginBottom: '1rem' }} />
+                                    <h3 style={{ marginBottom: '0.5rem' }}>¿Eliminar Pendiente?</h3>
+                                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+                                        Esta acción no se puede deshacer. Selecciona un motivo:
+                                    </p>
 
-                                        <select
-                                            value={deleteReason}
-                                            onChange={(e) => setDeleteReason(e.target.value)}
-                                            style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--glass-border)', outline: 'none', marginBottom: '1.5rem', fontSize: '1rem' }}
-                                        >
-                                            <option value="" style={{ background: '#1e293b' }}>-- Seleccionar motivo --</option>
-                                            {deleteReasons.map(r => (
-                                                <option key={r} value={r} style={{ background: '#1e293b' }}>{r}</option>
-                                            ))}
-                                        </select>
+                                    <select
+                                        value={deleteReason}
+                                        onChange={(e) => setDeleteReason(e.target.value)}
+                                        style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--glass-border)', outline: 'none', marginBottom: '1.5rem', fontSize: '1rem' }}
+                                    >
+                                        <option value="" style={{ background: '#1e293b' }}>-- Seleccionar motivo --</option>
+                                        {deleteReasons.map(r => (
+                                            <option key={r} value={r} style={{ background: '#1e293b' }}>{r}</option>
+                                        ))}
+                                    </select>
 
-                                        <div style={{ display: 'flex', gap: '1rem' }}>
-                                            <button
-                                                onClick={() => {
-                                                    setDeletingTransaction(null);
-                                                    setDeleteReason('');
-                                                }}
-                                                style={{ flex: 1, padding: '0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', cursor: 'pointer' }}
-                                            >
-                                                Cancelar
-                                            </button>
-                                            <button
-                                                disabled={!deleteReason || processingPayment}
-                                                onClick={handleDeletePending}
-                                                style={{ flex: 1, padding: '0.8rem', borderRadius: '0.5rem', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold', opacity: (!deleteReason || processingPayment) ? 0.5 : 1 }}
-                                            >
-                                                Eliminar
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Payment Selection Sub-modal */}
-                            {selectedPendingSale && (
-                                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000, padding: '1rem' }}>
-                                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '500px' }}>
-                                        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                                            <h2 style={{ marginBottom: '0.5rem' }}>Cobrar Transacción #{selectedPendingSale.id}</h2>
-                                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                                Total a cobrar: <span style={{ color: 'var(--accent)', fontWeight: 'bold', fontSize: '1.2rem' }}>₡{new Intl.NumberFormat('es-CR').format(selectedPendingSale.total)}</span>
-                                            </p>
-                                        </div>
-
-                                        <div style={{ display: 'grid', gap: '1rem' }}>
-                                            {paymentTypes.filter(t => t.name.toLowerCase() !== 'pendiente').map(type => (
-                                                <button
-                                                    key={type.id}
-                                                    disabled={processingPayment}
-                                                    onClick={() => handleUpdatePayment(selectedPendingSale.id, type.id)}
-                                                    className="glass-card hover-glow"
-                                                    style={{
-                                                        padding: '1.2rem',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '1.5rem',
-                                                        cursor: 'pointer',
-                                                        width: '100%',
-                                                        border: '1px solid var(--glass-border)',
-                                                        background: 'rgba(255,255,255,0.03)',
-                                                        color: 'white',
-                                                        transition: 'all 0.2s',
-                                                        opacity: processingPayment ? 0.5 : 1
-                                                    }}
-                                                >
-                                                    <div style={{
-                                                        width: '50px',
-                                                        height: '50px',
-                                                        borderRadius: '1rem',
-                                                        background: 'rgba(255,255,255,0.05)',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        color: 'var(--primary)'
-                                                    }}>
-                                                        {getPaymentIcon(type.name)}
-                                                    </div>
-                                                    <div style={{ textAlign: 'left' }}>
-                                                        <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.1rem' }}>{type.name}</p>
-                                                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Confirmar pago en {type.name}</p>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
                                         <button
-                                            onClick={() => setSelectedPendingSale(null)}
-                                            style={{ width: '100%', marginTop: '1.5rem', padding: '1rem', borderRadius: '0.8rem', background: 'none', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
+                                            onClick={() => {
+                                                setDeletingTransaction(null);
+                                                setDeleteReason('');
+                                            }}
+                                            style={{ flex: 1, padding: '0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', cursor: 'pointer' }}
                                         >
                                             Cancelar
                                         </button>
+                                        <button
+                                            disabled={!deleteReason || processingPayment}
+                                            onClick={handleDeletePending}
+                                            style={{ flex: 1, padding: '0.8rem', borderRadius: '0.5rem', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold', opacity: (!deleteReason || processingPayment) ? 0.5 : 1 }}
+                                        >
+                                            Eliminar
+                                        </button>
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
+
+                        {/* Payment Selection Sub-modal */}
+                        {selectedPendingSale && (
+                            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 5000, padding: '1rem' }}>
+                                <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '500px' }}>
+                                    <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                                        <h2 style={{ marginBottom: '0.5rem' }}>Cobrar Transacción #{selectedPendingSale.id}</h2>
+                                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                            Total a cobrar: <span style={{ color: 'var(--accent)', fontWeight: 'bold', fontSize: '1.2rem' }}>₡{new Intl.NumberFormat('es-CR').format(selectedPendingSale.total)}</span>
+                                        </p>
+                                    </div>
+
+                                    <div style={{ display: 'grid', gap: '1rem' }}>
+                                        {paymentTypes.filter(t => t.name.toLowerCase() !== 'pendiente').map(type => (
+                                            <button
+                                                key={type.id}
+                                                disabled={processingPayment}
+                                                onClick={() => handleUpdatePayment(selectedPendingSale.id, type.id)}
+                                                className="glass-card hover-glow"
+                                                style={{
+                                                    padding: '1.2rem',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '1.5rem',
+                                                    cursor: 'pointer',
+                                                    width: '100%',
+                                                    border: '1px solid var(--glass-border)',
+                                                    background: 'rgba(255,255,255,0.03)',
+                                                    color: 'white',
+                                                    transition: 'all 0.2s',
+                                                    opacity: processingPayment ? 0.5 : 1
+                                                }}
+                                            >
+                                                <div style={{
+                                                    width: '50px',
+                                                    height: '50px',
+                                                    borderRadius: '1rem',
+                                                    background: 'rgba(255,255,255,0.05)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: 'var(--primary)'
+                                                }}>
+                                                    {getPaymentIcon(type.name)}
+                                                </div>
+                                                <div style={{ textAlign: 'left' }}>
+                                                    <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.1rem' }}>{type.name}</p>
+                                                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Confirmar pago en {type.name}</p>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <button
+                                        onClick={() => setSelectedPendingSale(null)}
+                                        style={{ width: '100%', marginTop: '1.5rem', padding: '1rem', borderRadius: '0.8rem', background: 'none', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )
             }

@@ -286,16 +286,22 @@ export const closeCash = async (req, res) => {
 
 export const getPendingSales = async (req, res) => {
     try {
-        const { salesDayId } = req.query;
+        const { salesDayId, userId } = req.query;
         const pendingType = await PaymentType.findOne({ where: { name: 'Pendiente' } });
 
         if (!pendingType) return res.json([]);
 
+        const whereClause = {
+            SalesDayId: salesDayId,
+            PaymentTypeId: pendingType.id
+        };
+
+        if (userId) {
+            whereClause.UserId = userId;
+        }
+
         const transactions = await Transaction.findAll({
-            where: {
-                SalesDayId: salesDayId,
-                PaymentTypeId: pendingType.id
-            },
+            where: whereClause,
             include: [
                 {
                     model: Sale,

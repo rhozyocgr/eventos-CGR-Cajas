@@ -262,7 +262,7 @@ const NewSale = () => {
 
     const fetchPendingSales = async (dayId) => {
         try {
-            const res = await axios.get(`${API_URL}/sales/pending?salesDayId=${dayId}`);
+            const res = await axios.get(`${API_URL}/sales/pending?salesDayId=${dayId}&userId=${user?.id}`);
             setPendingSales(res.data);
         } catch (err) {
             console.error('Error fetching pending sales', err);
