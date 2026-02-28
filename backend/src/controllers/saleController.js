@@ -217,7 +217,8 @@ export const getDashboardStats = async (req, res) => {
         const topProductsRaw = await Sale.findAll({
             attributes: [
                 'ProductId',
-                [sequelize.fn('SUM', sequelize.col('quantity')), 'totalQuantity']
+                [sequelize.fn('SUM', sequelize.col('quantity')), 'totalQuantity'],
+                [sequelize.fn('SUM', sequelize.col('total')), 'totalRevenue']
             ],
             include: [{ model: Product, attributes: ['name'], required: true }],
             group: ['ProductId', 'Product.id'],
@@ -227,7 +228,8 @@ export const getDashboardStats = async (req, res) => {
 
         const topProducts = topProductsRaw.map(tp => ({
             name: tp.Product?.name || 'Desconocido',
-            total: parseInt(tp.dataValues.totalQuantity || 0)
+            total: parseInt(tp.dataValues.totalQuantity || 0),
+            revenue: parseFloat(tp.dataValues.totalRevenue || 0)
         }));
 
         const productCount = await Product.count();

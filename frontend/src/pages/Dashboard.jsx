@@ -56,7 +56,7 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="container dashboard-container">
+        <div className="container dashboard-container" style={{ maxWidth: '1600px', width: '95%' }}>
             <div className="dashboard-header">
                 <div className="title-section">
                     <h1>Panel de Control</h1>
@@ -115,27 +115,41 @@ const Dashboard = () => {
                     </h3>
                     <div className="chart-container">
                         {stats?.topProducts?.length > 0 ? (
-                            <ResponsiveContainer>
-                                <BarChart data={stats?.topProducts} layout="vertical" margin={{ left: 10, right: 30 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={stats?.topProducts} layout="vertical" margin={{ left: 30, right: 80, top: 10, bottom: 10 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
                                     <XAxis type="number" hide />
                                     <YAxis
                                         dataKey="name"
                                         type="category"
-                                        width={120}
-                                        style={{ fontSize: '0.75rem', fill: 'var(--text-secondary)' }}
+                                        width={150}
+                                        style={{ fontSize: '0.85rem', fill: 'var(--text-secondary)', fontWeight: 'bold' }}
                                     />
                                     <Tooltip
                                         cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                                        contentStyle={{
-                                            background: 'rgba(30, 41, 59, 0.9)',
-                                            border: '1px solid var(--glass-border)',
-                                            borderRadius: '0.8rem',
-                                            backdropFilter: 'blur(10px)'
+                                        content={({ active, payload }) => {
+                                            if (active && payload && payload.length) {
+                                                const data = payload[0].payload;
+                                                return (
+                                                    <div className="glass-card" style={{ padding: '0.8rem 1.2rem', border: '1px solid var(--primary)' }}>
+                                                        <p style={{ fontWeight: 'bold', marginBottom: '0.4rem', color: 'var(--primary)', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.4rem' }}>{data.name}</p>
+                                                        <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+                                                            <div>
+                                                                <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>CANTIDAD</span>
+                                                                <span style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--accent)' }}>{data.total} <span style={{ fontSize: '0.8rem', fontWeight: 'norma' }}>uds</span></span>
+                                                            </div>
+                                                            <div>
+                                                                <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>MONTO</span>
+                                                                <span style={{ fontSize: '1.2rem', fontWeight: '900', color: 'white' }}>₡{new Intl.NumberFormat('es-CR').format(data.revenue)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
                                         }}
-                                        itemStyle={{ color: 'white' }}
                                     />
-                                    <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={20}>
+                                    <Bar dataKey="total" name="Unidades" radius={[0, 4, 4, 0]} barSize={25} label={{ position: 'right', fill: 'var(--accent)', fontSize: 12, formatter: (val) => `${val} uds` }}>
                                         {stats?.topProducts?.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
@@ -159,16 +173,17 @@ const Dashboard = () => {
                     <div className="chart-container-pie">
                         {stats?.paymentStats?.length > 0 ? (
                             <>
-                                <ResponsiveContainer>
+                                <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie
                                             data={stats?.paymentStats}
                                             cx="50%"
                                             cy="50%"
-                                            innerRadius={70}
-                                            outerRadius={100}
-                                            paddingAngle={5}
+                                            innerRadius={80}
+                                            outerRadius={120}
+                                            paddingAngle={8}
                                             dataKey="value"
+                                            stroke="none"
                                         >
                                             {stats?.paymentStats?.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -177,10 +192,11 @@ const Dashboard = () => {
                                         <Tooltip
                                             formatter={(value) => `₡${new Intl.NumberFormat('es-CR').format(value)}`}
                                             contentStyle={{
-                                                background: 'rgba(30, 41, 59, 0.9)',
+                                                background: 'rgba(30, 41, 59, 0.95)',
                                                 border: '1px solid var(--glass-border)',
-                                                borderRadius: '0.8rem',
-                                                backdropFilter: 'blur(10px)'
+                                                borderRadius: '1rem',
+                                                backdropFilter: 'blur(10px)',
+                                                boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
                                             }}
                                         />
                                     </PieChart>
