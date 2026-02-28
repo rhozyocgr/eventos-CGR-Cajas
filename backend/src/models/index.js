@@ -141,11 +141,17 @@ CashOpening.belongsTo(User);
 SalesDay.hasMany(CashOpening);
 CashOpening.belongsTo(SalesDay);
 
+User.hasMany(CashOpening, { foreignKey: 'authorizedById', as: 'authorizedOpenings' });
+CashOpening.belongsTo(User, { foreignKey: 'authorizedById', as: 'authorizer' });
+
 Transaction.hasMany(TransactionRequest);
 TransactionRequest.belongsTo(Transaction);
 
 User.hasMany(TransactionRequest, { foreignKey: 'requesterId' });
 TransactionRequest.belongsTo(User, { as: 'requester', foreignKey: 'requesterId' });
+
+User.hasMany(TransactionRequest, { foreignKey: 'authorizedById', as: 'authorizedAdjustments' });
+TransactionRequest.belongsTo(User, { foreignKey: 'authorizedById', as: 'authorizer' });
 
 Event.belongsToMany(Product, { through: 'EventProducts' });
 Product.belongsToMany(Event, { through: 'EventProducts' });

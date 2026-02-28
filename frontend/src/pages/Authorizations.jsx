@@ -26,6 +26,8 @@ const Authorizations = () => {
     const { user: admin } = useAuth();
     const [pendingOpenings, setPendingOpenings] = useState([]);
     const [pendingAdjustments, setPendingAdjustments] = useState([]);
+    const [openingsHistory, setOpeningsHistory] = useState([]);
+    const [adjustmentsHistory, setAdjustmentsHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('openings'); // 'openings' or 'adjustments'
 
@@ -36,12 +38,16 @@ const Authorizations = () => {
     const fetchData = async (silent = false) => {
         try {
             if (!silent) setLoading(true);
-            const [openingsRes, adjustmentsRes] = await Promise.all([
+            const [openingsRes, adjustmentsRes, openingsHistRes, adjustmentsHistRes] = await Promise.all([
                 axios.get(`${API_URL}/sales/pending-openings`),
-                axios.get(`${API_URL}/sales/pending-adjustments`)
+                axios.get(`${API_URL}/sales/pending-adjustments`),
+                axios.get(`${API_URL}/sales/openings-history`),
+                axios.get(`${API_URL}/sales/adjustments-history`)
             ]);
             setPendingOpenings(openingsRes.data);
             setPendingAdjustments(adjustmentsRes.data);
+            setOpeningsHistory(openingsHistRes.data);
+            setAdjustmentsHistory(adjustmentsHistRes.data);
         } catch (err) {
             if (!silent) toast.error('Error al cargar autorizaciones pendientes');
         } finally {
@@ -231,6 +237,57 @@ const Authorizations = () => {
                             ))}
                         </div>
                     )}
+
+                    {/* Historial de Aperturas */}
+                    <div style={{ marginTop: '4rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '1.5rem' }}>
+                            <Clock size={24} color="var(--primary)" />
+                            <h2 style={{ margin: 0 }}>Historial de Aperturas</h2>
+                        </div>
+
+                        <div className="glass-card" style={{ overflowX: 'auto', padding: '1rem' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                <thead>
+                                    <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--glass-border)' }}>
+                                        <th style={{ padding: '1rem' }}>Fecha/Hora</th>
+                                        <th style={{ padding: '1rem' }}>Usuario</th>
+                                        <th style={{ padding: '1rem' }}>Día de Venta</th>
+                                        <th style={{ padding: '1rem' }}>Efectivo Inicial</th>
+                                        <th style={{ padding: '1rem' }}>Estado</th>
+                                        <th style={{ padding: '1rem' }}>Autorizado por</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {openingsHistory.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="6" style={{ padding: '2rem', textAlign: 'center', opacity: 0.5 }}>No hay historial disponible</td>
+                                        </tr>
+                                    ) : (
+                                        openingsHistory.map(opening => (
+                                            <tr key={opening.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                                                <td style={{ padding: '1rem' }}>
+                                                    <div style={{ fontWeight: '500' }}>{new Date(opening.openingTime).toLocaleDateString()}</div>
+                                                    <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>{new Date(opening.openingTime).toLocaleTimeString()}</div>
+                                                </td>
+                                                <td style={{ padding: '1rem' }}>{opening.User?.name}</td>
+                                                <td style={{ padding: '1rem' }}>{opening.SalesDay?.date ? new Date(opening.SalesDay.date + 'T00:00:00').toLocaleDateString() : '-'}</td>
+                                                <td style={{ padding: '1rem' }}>₡{new Intl.NumberFormat('es-CR').format(opening.initialCash)}</td>
+                                                <td style={{ padding: '1rem' }}>
+                                                    <span className={`status-badge ${opening.status}`} style={{ fontSize: '0.7rem' }}>
+                                                        {opening.status === 'authorized' ? 'Autorizado' :
+                                                            opening.status === 'denied' ? 'Rechazado' :
+                                                                opening.status === 'active' ? 'Activo' :
+                                                                    opening.status === 'closed' ? 'Cerrado' : opening.status}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '1rem' }}>{opening.authorizer?.name || '-'}</td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </>
             ) : (
                 <>
@@ -343,6 +400,64 @@ const Authorizations = () => {
                             ))}
                         </div>
                     )}
+
+                    {/* Historial de Ajustes */}
+                    <div style={{ marginTop: '4rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '1.5rem' }}>
+                            <Clock size={24} color="var(--primary)" />
+                            <h2 style={{ margin: 0 }}>Historial de Ajustes</h2>
+                        </div>
+
+                        <div className="glass-card" style={{ overflowX: 'auto', padding: '1rem' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                <thead>
+                                    <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--glass-border)' }}>
+                                        <th style={{ padding: '1rem' }}>Fecha/Hora</th>
+                                        <th style={{ padding: '1rem' }}>Solicitante</th>
+                                        <th style={{ padding: '1rem' }}>Tipo</th>
+                                        <th style={{ padding: '1rem' }}>Venta</th>
+                                        <th style={{ padding: '1rem' }}>Motivo</th>
+                                        <th style={{ padding: '1rem' }}>Estado</th>
+                                        <th style={{ padding: '1rem' }}>Autorizado por</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {adjustmentsHistory.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="7" style={{ padding: '2rem', textAlign: 'center', opacity: 0.5 }}>No hay historial disponible</td>
+                                        </tr>
+                                    ) : (
+                                        adjustmentsHistory.map(request => (
+                                            <tr key={request.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                                                <td style={{ padding: '1rem' }}>
+                                                    <div style={{ fontWeight: '500' }}>{new Date(request.createdAt).toLocaleDateString()}</div>
+                                                    <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>{new Date(request.createdAt).toLocaleTimeString()}</div>
+                                                </td>
+                                                <td style={{ padding: '1rem' }}>{request.requester?.name}</td>
+                                                <td style={{ padding: '1rem' }}>
+                                                    {request.type === 'deletion' ? 'Eliminar Venta' : request.type === 'product_edit' ? 'Editar Productos' : 'Cambiar Pago'}
+                                                </td>
+                                                <td style={{ padding: '1rem' }}>
+                                                    <div style={{ fontWeight: 'bold' }}>₡{new Intl.NumberFormat('es-CR').format(request.Transaction?.total || 0)}</div>
+                                                    <div style={{ fontSize: '0.7rem', opacity: 0.5 }}>ID: {request.TransactionId || '-'}</div>
+                                                </td>
+                                                <td style={{ padding: '1rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={request.reason}>
+                                                    {request.reason}
+                                                </td>
+                                                <td style={{ padding: '1rem' }}>
+                                                    <span className={`status-badge ${request.status}`} style={{ fontSize: '0.7rem' }}>
+                                                        {request.status === 'approved' ? 'Aprobado' :
+                                                            request.status === 'denied' ? 'Rechazado' : request.status}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '1rem' }}>{request.authorizer?.name || '-'}</td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </>
             )
             }

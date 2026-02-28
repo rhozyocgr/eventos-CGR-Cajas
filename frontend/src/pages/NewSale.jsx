@@ -95,12 +95,22 @@ const NewSale = () => {
 
     useEffect(() => {
         fetchInitialData();
-        const savedEventId = localStorage.getItem('selectedEventId');
         const savedDayId = localStorage.getItem('selectedDayId');
+        const savedEventId = localStorage.getItem('selectedEventId');
         if (savedEventId) {
             fetchEventData(savedEventId, savedDayId);
         }
     }, []);
+
+    useEffect(() => {
+        if (events.length > 0 && !selectedEvent) {
+            const savedEventId = localStorage.getItem('selectedEventId');
+            if (savedEventId) {
+                const ev = events.find(e => e.id.toString() === savedEventId.toString());
+                if (ev) setSelectedEvent(ev);
+            }
+        }
+    }, [events, selectedEvent]);
 
     const fetchInitialData = async () => {
         try {
@@ -131,6 +141,7 @@ const NewSale = () => {
                 if (day) {
                     setSelectedDay(day);
                     fetchPendingSales(day.id);
+                    checkCashOpening(day.id);
                 }
             } else {
                 const today = new Date().toISOString().split('T')[0];
@@ -517,22 +528,39 @@ const NewSale = () => {
                 <div style={{ display: 'grid', gap: '1rem' }}>
                     {events.map(ev => (
                         <div key={ev.id} className="glass-card hover-glow"
-                            style={{ padding: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1.5rem' }}
+                            style={{ padding: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1.5rem', transition: 'all 0.3s' }}
                             onClick={() => handleSelectEvent(ev)}>
                             {ev.logo ? (
-                                <img src={ev.logo} alt="" style={{ width: '60px', height: '60px', borderRadius: '0.8rem', objectFit: 'cover' }} />
+                                <img src={ev.logo} alt="" style={{ width: '80px', height: '80px', borderRadius: '1rem', objectFit: 'cover' }} />
                             ) : (
-                                <div style={{ width: '60px', height: '60px', borderRadius: '0.8rem', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Calendar size={30} color="var(--primary)" />
+                                <div style={{ width: '80px', height: '80px', borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Calendar size={40} color="var(--primary)" />
                                 </div>
                             )}
                             <div style={{ flex: 1 }}>
-                                <h3 style={{ margin: 0 }}>{ev.name}</h3>
-                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
-                                    {new Date(ev.startDate.split('T')[0] + 'T00:00:00').toLocaleDateString()}
-                                </p>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <h2 style={{ margin: 0, fontSize: '1.4rem' }}>{ev.name}</h2>
+                                </div>
+                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                        <Calendar size={14} />
+                                        <span>{new Date(ev.startDate.split('T')[0] + 'T00:00:00').toLocaleDateString()}</span>
+                                    </div>
+                                    <ChevronRight size={14} style={{ opacity: 0.3 }} />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                        <Clock size={14} />
+                                        <span>{new Date(ev.endDate.split('T')[0] + 'T00:00:00').toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                                {ev.description && (
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.8rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                        {ev.description}
+                                    </p>
+                                )}
                             </div>
-                            <ChevronRight size={24} color="var(--glass-border)" />
+                            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '50%' }}>
+                                <ChevronRight size={20} color="var(--primary)" />
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -543,19 +571,50 @@ const NewSale = () => {
     if (!selectedDay) {
         return (
             <div className="container" style={{ maxWidth: '800px' }}>
-                <button onClick={() => setSelectedEvent(null)} className="btn" style={{ background: 'none', color: 'var(--text-secondary)', marginBottom: '1.5rem', padding: 0 }}>
+                <button onClick={() => setSelectedEvent(null)} className="btn" style={{ background: 'none', color: 'var(--text-secondary)', marginBottom: '1.5rem', padding: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <ArrowLeft size={18} /> Cambiar Evento
                 </button>
-                <h1 style={{ marginBottom: '1.5rem' }}>Día de Venta</h1>
+
+                <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem', borderLeft: '4px solid var(--primary)' }}>
+                    <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+                        {selectedEvent.logo ? (
+                            <img src={selectedEvent.logo} alt="" style={{ width: '80px', height: '80px', borderRadius: '1rem', objectFit: 'cover' }} />
+                        ) : (
+                            <div style={{ width: '80px', height: '80px', borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Calendar size={40} color="var(--primary)" />
+                            </div>
+                        )}
+                        <div style={{ flex: 1 }}>
+                            <h1 style={{ margin: 0, fontSize: '1.8rem', color: 'white' }}>{selectedEvent.name}</h1>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', color: 'var(--primary)', fontWeight: '600', fontSize: '0.9rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <Calendar size={14} />
+                                    <span>Inicio: {new Date(selectedEvent.startDate.split('T')[0] + 'T00:00:00').toLocaleDateString()}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <Clock size={14} />
+                                    <span>Final: {new Date(selectedEvent.endDate.split('T')[0] + 'T00:00:00').toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            {selectedEvent.description && (
+                                <p style={{ color: 'var(--text-secondary)', marginTop: '1rem', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                                    {selectedEvent.description}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <h2 style={{ marginBottom: '1.5rem', fontSize: '1.2rem', opacity: 0.8 }}>Selecciona el Día de Venta</h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
                     {eventDays.map(day => (
                         <div key={day.id} className="glass-card hover-glow"
-                            style={{ padding: '2rem 1rem', cursor: 'pointer', textAlign: 'center' }}
+                            style={{ padding: '2rem 1rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
                             onClick={() => handleSelectDay(day)}>
                             <h3 style={{ color: 'var(--primary)', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
                                 {new Date(day.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                             </h3>
-                            <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>{day.Products?.length || 0} productos</p>
+                            <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>{day.Products?.length || 0} productos habilitados</p>
                         </div>
                     ))}
                 </div>
@@ -718,9 +777,16 @@ const NewSale = () => {
                         <ArrowLeft size={18} />
                     </button>
                     <div className="pos-event-info">
-                        <h4>{selectedEvent.name}</h4>
-                        <p>
-                            {new Date(selectedDay.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <h4 style={{ margin: 0 }}>{selectedEvent.name}</h4>
+                            <span style={{ fontSize: '0.65rem', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontWeight: 'bold' }}>
+                                {new Date(selectedEvent.startDate.split('T')[0] + 'T00:00:00').toLocaleDateString([], { day: 'numeric', month: 'short' })} - {new Date(selectedEvent.endDate.split('T')[0] + 'T00:00:00').toLocaleDateString([], { day: 'numeric', month: 'short' })}
+                            </span>
+                        </div>
+                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.75rem', opacity: 0.8, color: 'var(--primary)' }}>
+                            <span style={{ textTransform: 'capitalize' }}>
+                                {new Date(selectedDay.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                            </span>
                         </p>
                     </div>
                 </div>

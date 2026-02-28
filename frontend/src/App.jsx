@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart, ChevronLeft, LogOut, Calculator, Users as UsersIcon, ShieldCheck, History } from 'lucide-react';
+import { Home, Package, Truck, Calendar, CreditCard, ShoppingCart, ChevronLeft, LogOut, Calculator, Users as UsersIcon, ShieldCheck, History, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -14,6 +14,7 @@ import Users from './pages/Users';
 import Authorizations from './pages/Authorizations';
 import MyClosings from './pages/MyClosings';
 import Dashboard from './pages/Dashboard';
+import Transactions from './pages/Transactions';
 import { version } from '../package.json';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -90,6 +91,7 @@ const MainLayout = ({ children }) => {
                             <NavItem to="/events" icon={Calendar} label="Eventos" />
                             <NavItem to="/payments" icon={Calculator} label="Cierre de cajas" />
                             <NavItem to="/authorizations" icon={ShieldCheck} label="Autorizaciones" />
+                            <NavItem to="/transactions" icon={FileText} label="Transacciones" />
                             <NavItem to="/users" icon={UsersIcon} label="Usuarios" />
                         </>
                     )}
@@ -98,23 +100,32 @@ const MainLayout = ({ children }) => {
                 <div className={`nav-profile-container ${isCollapsed ? 'collapsed' : ''}`} style={{ position: 'relative' }}>
                     <div className="version-tag" style={{
                         position: 'absolute',
-                        top: '-15px',
+                        top: '-24px',
                         left: isCollapsed ? '50%' : '56px',
                         transform: isCollapsed ? 'translateX(-50%)' : 'none',
                         width: 'auto',
-                        opacity: 0.5,
-                        pointerEvents: 'none',
-                        zIndex: 10
+                        zIndex: 10,
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}>
                         <span style={{
-                            fontSize: '0.5rem',
-                            color: 'var(--text-secondary)',
+                            fontSize: '0.7rem',
+                            color: 'white',
+                            backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                            backgroundImage: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)',
+                            backdropFilter: 'blur(4px)',
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '2rem',
+                            border: '1px solid rgba(99, 102, 241, 0.3)',
                             letterSpacing: '0.05em',
-                            fontWeight: '600',
+                            fontWeight: '800',
                             textTransform: 'uppercase',
-                            whiteSpace: 'nowrap'
+                            whiteSpace: 'nowrap',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.3rem'
                         }}>
-                            v{version}
+                            <span style={{ fontSize: '0.6rem', opacity: 0.7 }}>VER</span> {version}
                         </span>
                     </div>
                     <div style={{
@@ -204,6 +215,7 @@ function App() {
                             <Route path="/events" element={<ProtectedRoute adminOnly={true}><Events /></ProtectedRoute>} />
                             <Route path="/payments" element={<ProtectedRoute adminOnly={true}><Cashier /></ProtectedRoute>} />
                             <Route path="/authorizations" element={<ProtectedRoute adminOnly={true}><Authorizations /></ProtectedRoute>} />
+                            <Route path="/transactions" element={<ProtectedRoute adminOnly={true}><Transactions /></ProtectedRoute>} />
                             <Route path="/users" element={<ProtectedRoute adminOnly={true}><Users /></ProtectedRoute>} />
                             <Route path="/new-sale" element={<ProtectedRoute><NewSale /></ProtectedRoute>} />
                             <Route path="/my-closings" element={<ProtectedRoute><MyClosings /></ProtectedRoute>} />

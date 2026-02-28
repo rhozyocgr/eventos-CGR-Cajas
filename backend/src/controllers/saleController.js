@@ -775,3 +775,66 @@ export const processAdjustment = async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 };
+
+export const getAllOpenings = async (req, res) => {
+    try {
+        const openings = await CashOpening.findAll({
+            include: [
+                { model: User, attributes: ['name', 'email'] },
+                { model: SalesDay, attributes: ['date', 'description'] },
+                { model: User, as: 'authorizer', attributes: ['name'] }
+            ],
+            order: [['openingTime', 'DESC']]
+        });
+        res.json(openings);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const getAllAdjustments = async (req, res) => {
+    try {
+        const requests = await TransactionRequest.findAll({
+            include: [
+                { model: User, as: 'requester', attributes: ['name', 'email'] },
+                { model: User, as: 'authorizer', attributes: ['name'] },
+                {
+                    model: Transaction,
+                    include: [
+                        { model: PaymentType },
+                        { model: SalesDay, include: [Event] },
+                        { model: Sale, include: [Product] }
+                    ]
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(requests);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const getAllTransactions = async (req, res) => {
+    try {
+        const transactions = await Transaction.findAll({
+            include: [
+                { model: User, attributes: ['name', 'email'] },
+                {
+                    model: SalesDay,
+                    attributes: ['date'],
+                    include: [{ model: Event, attributes: ['name'] }]
+                },
+                { model: PaymentType, attributes: ['name'] },
+                {
+                    model: Sale,
+                    include: [{ model: Product, attributes: ['name'] }]
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(transactions);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

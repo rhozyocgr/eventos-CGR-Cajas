@@ -19,7 +19,10 @@ import {
     getRecentTransactions,
     createAdjustmentRequest,
     getPendingAdjustments,
-    processAdjustment
+    processAdjustment,
+    getAllOpenings,
+    getAllAdjustments,
+    getAllTransactions
 } from '../controllers/saleController.js';
 
 const router = express.Router();
@@ -47,5 +50,10 @@ router.get('/recent', getRecentTransactions);
 router.post('/adjustment-request', createAdjustmentRequest);
 router.get('/pending-adjustments', getPendingAdjustments);
 router.post('/process-adjustment/:id', processAdjustment);
+
+// History
+router.get('/openings-history', getAllOpenings);
+router.get('/adjustments-history', getAllAdjustments);
+router.get('/transactions', getAllTransactions);
 
 export default router;
