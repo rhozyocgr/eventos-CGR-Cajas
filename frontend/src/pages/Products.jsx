@@ -248,7 +248,7 @@ const Products = () => {
 
     return (
         <div className="container">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                     <h1>Productos</h1>
                     <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', position: 'relative' }}>
@@ -329,12 +329,13 @@ const Products = () => {
                             placeholder="Buscar por nombre o descripción..."
                             style={{
                                 width: '100%',
-                                padding: '0.8rem 0.8rem 0.8rem 3rem',
+                                padding: '0.6rem 0.8rem 0.6rem 2.8rem',
                                 borderRadius: '2rem',
                                 border: '1px solid var(--glass-border)',
                                 background: 'rgba(255,255,255,0.05)',
                                 color: 'white',
-                                outline: 'none'
+                                outline: 'none',
+                                fontSize: '0.9rem'
                             }}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -343,13 +344,14 @@ const Products = () => {
 
                     <select
                         style={{
-                            padding: '0.8rem 1rem',
+                            padding: '0.6rem 1rem',
                             borderRadius: '2rem',
                             border: '1px solid var(--glass-border)',
                             background: 'rgba(30, 41, 59, 1)',
                             color: 'white',
                             outline: 'none',
-                            minWidth: '200px'
+                            minWidth: '200px',
+                            fontSize: '0.9rem'
                         }}
                         value={filterSupplier}
                         onChange={(e) => setFilterSupplier(e.target.value)}
@@ -371,17 +373,17 @@ const Products = () => {
                     {error}
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
                     {[...filteredProducts].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
-                        <div key={p.id} className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <h3 style={{ color: 'var(--primary)' }}>{p.name}</h3>
+                        <div key={p.id} className="glass-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.2rem' }}>
+                                <h3 style={{ color: 'var(--primary)', fontSize: '1.1rem', margin: 0, lineHeight: '1.2' }}>{p.name}</h3>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button onClick={() => handleOpenModal(p)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                                        <Edit2 size={18} />
+                                    <button onClick={() => handleOpenModal(p)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }}>
+                                        <Edit2 size={16} />
                                     </button>
-                                    <button onClick={() => handleDelete(p.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
-                                        <Trash2 size={18} />
+                                    <button onClick={() => handleDelete(p.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}>
+                                        <Trash2 size={16} />
                                     </button>
                                 </div>
                             </div>
@@ -394,7 +396,7 @@ const Products = () => {
                                 thousandSeparator="."
                                 decimalSeparator=","
                                 prefix="₡"
-                                style={{ fontSize: '1.5rem', fontWeight: 'bold' }}
+                                style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'white' }}
                             />
                             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                                 Proveedor: <span style={{ color: 'var(--accent)' }}>{p.Supplier?.name || 'No asignado'}</span>

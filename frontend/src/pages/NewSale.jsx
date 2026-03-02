@@ -27,7 +27,11 @@ import {
     Save,
     FileText,
     AlertCircle,
-    XCircle
+    XCircle,
+    History,
+    Edit2,
+    ShoppingBag,
+    MessageSquare
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3000/api`;
@@ -72,6 +76,15 @@ const NewSale = () => {
     const [deletingTransaction, setDeletingTransaction] = useState(null);
     const [deleteReason, setDeleteReason] = useState('');
     const [isCartExpanded, setIsCartExpanded] = useState(false);
+    const [showRecentModal, setShowRecentModal] = useState(false);
+    const [recentTransactions, setRecentTransactions] = useState([]);
+    const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
+    const [adjustingTransaction, setAdjustingTransaction] = useState(null);
+    const [adjustmentType, setAdjustmentType] = useState('payment_change'); // 'payment_change', 'deletion', 'product_edit'
+    const [newPaymentTypeId, setNewPaymentTypeId] = useState('');
+    const [adjustmentReason, setAdjustmentReason] = useState('');
+    const [editingProducts, setEditingProducts] = useState([]);
+    const [transactionSearchQuery, setTransactionSearchQuery] = useState('');
 
     const deleteReasons = [
         'Creado por error',
@@ -82,12 +95,22 @@ const NewSale = () => {
 
     useEffect(() => {
         fetchInitialData();
-        const savedEventId = localStorage.getItem('selectedEventId');
         const savedDayId = localStorage.getItem('selectedDayId');
+        const savedEventId = localStorage.getItem('selectedEventId');
         if (savedEventId) {
             fetchEventData(savedEventId, savedDayId);
         }
     }, []);
+
+    useEffect(() => {
+        if (events.length > 0 && !selectedEvent) {
+            const savedEventId = localStorage.getItem('selectedEventId');
+            if (savedEventId) {
+                const ev = events.find(e => e.id.toString() === savedEventId.toString());
+                if (ev) setSelectedEvent(ev);
+            }
+        }
+    }, [events, selectedEvent]);
 
     const fetchInitialData = async () => {
         try {
@@ -118,6 +141,7 @@ const NewSale = () => {
                 if (day) {
                     setSelectedDay(day);
                     fetchPendingSales(day.id);
+                    checkCashOpening(day.id);
                 }
             } else {
                 const today = new Date().toISOString().split('T')[0];
@@ -277,6 +301,93 @@ const NewSale = () => {
         }
     };
 
+    const fetchRecentTransactions = async () => {
+        if (!selectedDay) return;
+        try {
+            setLoading(true);
+            const res = await axios.get(`${API_URL}/sales/recent?salesDayId=${selectedDay.id}&userId=${user.id}`);
+            setRecentTransactions(res.data);
+        } catch (err) {
+            toast.error('Error al cargar ventas recientes');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const filteredTransactions = recentTransactions.filter(t => {
+        if (!transactionSearchQuery) return true;
+        const query = transactionSearchQuery.toLowerCase();
+
+        // Search by ID
+        if (t.id.toString().includes(query)) return true;
+
+        // Search by Total
+        if (t.total.toString().includes(query)) return true;
+        if (new Intl.NumberFormat('es-CR').format(t.total).includes(query)) return true;
+
+        // Search by Payment Type
+        if (t.PaymentType?.name.toLowerCase().includes(query)) return true;
+
+        // Search by Products
+        const hasProduct = t.Sales?.some(s => s.Product?.name.toLowerCase().includes(query));
+        if (hasProduct) return true;
+
+        // Search by User/Cashier
+        if (t.User?.name.toLowerCase().includes(query)) return true;
+
+        // Search by observation (if exists)
+        if (t.observation?.toLowerCase().includes(query)) return true;
+
+        return false;
+    });
+
+    const handleRequestAdjustment = async () => {
+        if (!adjustingTransaction || !adjustmentReason) {
+            toast.error('Por favor indica el motivo');
+            return;
+        }
+        if (adjustmentType === 'payment_change' && !newPaymentTypeId) {
+            toast.error('Selecciona el nuevo método de pago');
+            return;
+        }
+        if (adjustmentType === 'product_edit' && editingProducts.every(p => p.newQuantity === p.quantity)) {
+            toast.error('No has realizado ningún cambio en los productos');
+            return;
+        }
+
+        try {
+            setPaymentLoading(true);
+            let details = {};
+            if (adjustmentType === 'payment_change') {
+                details = { newPaymentTypeId: parseInt(newPaymentTypeId) };
+            } else if (adjustmentType === 'product_edit') {
+                details = {
+                    items: editingProducts
+                        .filter(p => p.newQuantity !== p.quantity)
+                        .map(p => ({ saleId: p.id, newQuantity: p.newQuantity }))
+                };
+            }
+
+            await axios.post(`${API_URL}/sales/adjustment-request`, {
+                transactionId: adjustingTransaction.id,
+                type: adjustmentType,
+                reason: adjustmentReason,
+                details,
+                requesterId: user.id
+            });
+            toast.success('Solicitud enviada al administrador');
+            setShowAdjustmentModal(false);
+            setAdjustingTransaction(null);
+            setAdjustmentReason('');
+            setNewPaymentTypeId('');
+            setEditingProducts([]);
+        } catch (err) {
+            toast.error('Error al enviar la solicitud');
+        } finally {
+            setPaymentLoading(false);
+        }
+    };
+
     const handleReset = () => {
         localStorage.removeItem('selectedEventId');
         localStorage.removeItem('selectedDayId');
@@ -423,22 +534,39 @@ const NewSale = () => {
                 <div style={{ display: 'grid', gap: '1rem' }}>
                     {events.map(ev => (
                         <div key={ev.id} className="glass-card hover-glow"
-                            style={{ padding: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1.5rem' }}
+                            style={{ padding: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1.5rem', transition: 'all 0.3s' }}
                             onClick={() => handleSelectEvent(ev)}>
                             {ev.logo ? (
-                                <img src={ev.logo} alt="" style={{ width: '60px', height: '60px', borderRadius: '0.8rem', objectFit: 'cover' }} />
+                                <img src={ev.logo} alt="" style={{ width: '80px', height: '80px', borderRadius: '1rem', objectFit: 'cover' }} />
                             ) : (
-                                <div style={{ width: '60px', height: '60px', borderRadius: '0.8rem', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Calendar size={30} color="var(--primary)" />
+                                <div style={{ width: '80px', height: '80px', borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Calendar size={40} color="var(--primary)" />
                                 </div>
                             )}
                             <div style={{ flex: 1 }}>
-                                <h3 style={{ margin: 0 }}>{ev.name}</h3>
-                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
-                                    {new Date(ev.startDate.split('T')[0] + 'T00:00:00').toLocaleDateString()}
-                                </p>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <h2 style={{ margin: 0, fontSize: '1.4rem' }}>{ev.name}</h2>
+                                </div>
+                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                        <Calendar size={14} />
+                                        <span>{new Date(ev.startDate.split('T')[0] + 'T00:00:00').toLocaleDateString()}</span>
+                                    </div>
+                                    <ChevronRight size={14} style={{ opacity: 0.3 }} />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                        <Clock size={14} />
+                                        <span>{new Date(ev.endDate.split('T')[0] + 'T00:00:00').toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                                {ev.description && (
+                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.8rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                        {ev.description}
+                                    </p>
+                                )}
                             </div>
-                            <ChevronRight size={24} color="var(--glass-border)" />
+                            <div style={{ background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '50%' }}>
+                                <ChevronRight size={20} color="var(--primary)" />
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -449,19 +577,50 @@ const NewSale = () => {
     if (!selectedDay) {
         return (
             <div className="container" style={{ maxWidth: '800px' }}>
-                <button onClick={() => setSelectedEvent(null)} className="btn" style={{ background: 'none', color: 'var(--text-secondary)', marginBottom: '1.5rem', padding: 0 }}>
+                <button onClick={() => setSelectedEvent(null)} className="btn" style={{ background: 'none', color: 'var(--text-secondary)', marginBottom: '1.5rem', padding: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <ArrowLeft size={18} /> Cambiar Evento
                 </button>
-                <h1 style={{ marginBottom: '1.5rem' }}>Día de Venta</h1>
+
+                <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem', borderLeft: '4px solid var(--primary)' }}>
+                    <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+                        {selectedEvent.logo ? (
+                            <img src={selectedEvent.logo} alt="" style={{ width: '80px', height: '80px', borderRadius: '1rem', objectFit: 'cover' }} />
+                        ) : (
+                            <div style={{ width: '80px', height: '80px', borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Calendar size={40} color="var(--primary)" />
+                            </div>
+                        )}
+                        <div style={{ flex: 1 }}>
+                            <h1 style={{ margin: 0, fontSize: '1.8rem', color: 'white' }}>{selectedEvent.name}</h1>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', color: 'var(--primary)', fontWeight: '600', fontSize: '0.9rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <Calendar size={14} />
+                                    <span>Inicio: {new Date(selectedEvent.startDate.split('T')[0] + 'T00:00:00').toLocaleDateString()}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                    <Clock size={14} />
+                                    <span>Final: {new Date(selectedEvent.endDate.split('T')[0] + 'T00:00:00').toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            {selectedEvent.description && (
+                                <p style={{ color: 'var(--text-secondary)', marginTop: '1rem', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                                    {selectedEvent.description}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <h2 style={{ marginBottom: '1.5rem', fontSize: '1.2rem', opacity: 0.8 }}>Selecciona el Día de Venta</h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
                     {eventDays.map(day => (
                         <div key={day.id} className="glass-card hover-glow"
-                            style={{ padding: '2rem 1rem', cursor: 'pointer', textAlign: 'center' }}
+                            style={{ padding: '2rem 1rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
                             onClick={() => handleSelectDay(day)}>
                             <h3 style={{ color: 'var(--primary)', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
                                 {new Date(day.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                             </h3>
-                            <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>{day.Products?.length || 0} productos</p>
+                            <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>{day.Products?.length || 0} productos habilitados</p>
                         </div>
                     ))}
                 </div>
@@ -624,9 +783,16 @@ const NewSale = () => {
                         <ArrowLeft size={18} />
                     </button>
                     <div className="pos-event-info">
-                        <h4>{selectedEvent.name}</h4>
-                        <p>
-                            {new Date(selectedDay.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <h4 style={{ margin: 0 }}>{selectedEvent.name}</h4>
+                            <span style={{ fontSize: '0.65rem', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', padding: '0.1rem 0.5rem', borderRadius: '1rem', fontWeight: 'bold' }}>
+                                {new Date(selectedEvent.startDate.split('T')[0] + 'T00:00:00').toLocaleDateString([], { day: 'numeric', month: 'short' })} - {new Date(selectedEvent.endDate.split('T')[0] + 'T00:00:00').toLocaleDateString([], { day: 'numeric', month: 'short' })}
+                            </span>
+                        </div>
+                        <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.75rem', opacity: 0.8, color: 'var(--primary)' }}>
+                            <span style={{ textTransform: 'capitalize' }}>
+                                {new Date(selectedDay.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                            </span>
                         </p>
                     </div>
                 </div>
@@ -639,6 +805,18 @@ const NewSale = () => {
                         style={{ border: '1px solid rgba(99, 102, 241, 0.5)', background: 'rgba(99, 102, 241, 0.1)' }}
                     >
                         <LogOut size={18} color="var(--primary)" />
+                    </button>
+
+                    <button
+                        onClick={() => {
+                            setShowRecentModal(true);
+                            fetchRecentTransactions();
+                        }}
+                        className="btn-refresh"
+                        title="Ventas Recientes"
+                        style={{ background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.2)', color: 'var(--primary)' }}
+                    >
+                        <History size={16} />
                     </button>
 
                     <button
@@ -1269,6 +1447,308 @@ const NewSale = () => {
                 .no-scrollbar::-webkit-scrollbar { display: none; }
                 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
+            {/* RECENT TRANSACTIONS MODAL */}
+            {showRecentModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4000, padding: '1rem' }}>
+                    <div className="glass-card" style={{ padding: '2rem', width: '100%', maxWidth: '850px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.8rem' }}>
+                                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', margin: 0 }}>
+                                    <History size={24} color="var(--primary)" />
+                                    Historial Completo
+                                </h2>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                    {recentTransactions.length} ventas en esta sesión
+                                </span>
+                            </div>
+                            <button onClick={() => {
+                                setShowRecentModal(false);
+                                setTransactionSearchQuery('');
+                            }} className="btn-icon-sm"><X size={20} /></button>
+                        </div>
+
+                        {/* PREMIUM SEARCH BAR */}
+                        <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+                            <Search
+                                size={20}
+                                style={{ position: 'absolute', left: '1.2rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.6, color: transactionSearchQuery ? 'var(--primary)' : 'white' }}
+                            />
+                            <input
+                                type="text"
+                                placeholder="Búsqueda inteligente: ID, productos, montos, métodos de pago..."
+                                value={transactionSearchQuery}
+                                onChange={(e) => setTransactionSearchQuery(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '1.4rem 1.4rem 1.4rem 3.8rem',
+                                    borderRadius: '1.2rem',
+                                    background: 'rgba(255,255,255,0.03)',
+                                    border: '1px solid var(--glass-border)',
+                                    color: 'white',
+                                    fontSize: '1.1rem',
+                                    outline: 'none',
+                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    boxShadow: transactionSearchQuery ? '0 0 20px rgba(99, 102, 241, 0.15), inset 0 2px 4px rgba(0,0,0,0.2)' : 'inset 0 2px 4px rgba(0,0,0,0.1)'
+                                }}
+                            />
+                            {transactionSearchQuery && (
+                                <div style={{ position: 'absolute', right: '1.2rem', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 'bold', background: 'rgba(99, 102, 241, 0.1)', padding: '0.3rem 0.6rem', borderRadius: '0.5rem' }}>
+                                        {filteredTransactions.length} encontrados
+                                    </span>
+                                    <button
+                                        onClick={() => setTransactionSearchQuery('')}
+                                        style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex' }}
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="no-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', flex: 1, paddingRight: '0.5rem' }}>
+                            {filteredTransactions.map(transaction => (
+                                <div key={transaction.id} className="glass-card" style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', transition: 'all 0.2s ease' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.2rem' }}>
+                                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                            <div style={{ background: 'rgba(255,255,255,0.05)', width: '45px', height: '45px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: '900', color: 'var(--primary)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                                #{transaction.id}
+                                            </div>
+                                            <div>
+                                                <p style={{ margin: 0, fontWeight: 'bold', fontSize: '1.1rem' }}>
+                                                    {new Date(transaction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                                </p>
+                                                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    <Receipt size={12} /> {transaction.PaymentType?.name} • Cajero: {transaction.User?.name}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.8rem' }}>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <p style={{ margin: 0, fontWeight: '900', color: 'var(--accent)', fontSize: '1.3rem', letterSpacing: '0.5px' }}>
+                                                    ₡{new Intl.NumberFormat('es-CR').format(transaction.total)}
+                                                </p>
+                                            </div>
+
+                                            <div style={{ display: 'flex', gap: '0.6rem' }}>
+                                                <button
+                                                    onClick={() => {
+                                                        setAdjustingTransaction(transaction);
+                                                        setAdjustmentType('product_edit');
+                                                        setEditingProducts(transaction.Sales.map(s => ({ ...s, newQuantity: s.quantity })));
+                                                        setShowAdjustmentModal(true);
+                                                    }}
+                                                    className="btn-refresh"
+                                                    title="Modificar Productos"
+                                                    style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}
+                                                >
+                                                    <ShoppingBag size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setAdjustingTransaction(transaction);
+                                                        setAdjustmentType('payment_change');
+                                                        setShowAdjustmentModal(true);
+                                                    }}
+                                                    className="btn-refresh"
+                                                    title="Modificar Pago"
+                                                    style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', border: '1px solid rgba(99, 102, 241, 0.2)' }}
+                                                >
+                                                    <Edit2 size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setAdjustingTransaction(transaction);
+                                                        setAdjustmentType('deletion');
+                                                        setShowAdjustmentModal(true);
+                                                    }}
+                                                    className="btn-refresh"
+                                                    title="Eliminar Venta"
+                                                    style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{
+                                        background: 'rgba(255,255,255,0.02)',
+                                        borderRadius: '0.8rem',
+                                        padding: '1rem',
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                                        gap: '0.8rem'
+                                    }}>
+                                        {transaction.Sales?.map(sale => {
+                                            const isMatch = transactionSearchQuery && sale.Product?.name.toLowerCase().includes(transactionSearchQuery.toLowerCase());
+                                            return (
+                                                <div key={sale.id} style={{
+                                                    fontSize: '0.85rem',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    color: isMatch ? 'var(--primary)' : 'white',
+                                                    fontWeight: isMatch ? 'bold' : 'normal',
+                                                    padding: '0.2rem 0.5rem',
+                                                    borderRadius: '4px',
+                                                    background: isMatch ? 'rgba(99, 102, 241, 0.1)' : 'transparent'
+                                                }}>
+                                                    <span>• {sale.Product?.name}</span>
+                                                    <span style={{ opacity: 0.6 }}>x{sale.quantity}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {transaction.observation && (
+                                        <div style={{ marginTop: '0.8rem', fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic', display: 'flex', gap: '0.5rem' }}>
+                                            <MessageSquare size={12} /> {transaction.observation}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+
+                            {filteredTransactions.length === 0 && (
+                                <div style={{ textAlign: 'center', padding: '4rem 2rem', opacity: 0.5 }}>
+                                    <div style={{ background: 'rgba(255,255,255,0.05)', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                                        <Search size={30} />
+                                    </div>
+                                    <p style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: '0 0 0.5rem 0' }}>
+                                        {transactionSearchQuery ? 'Sin resultados' : 'Historial vacío'}
+                                    </p>
+                                    <p style={{ fontSize: '0.9rem' }}>
+                                        {transactionSearchQuery
+                                            ? `No se encontraron ventas que coincidan con "${transactionSearchQuery}"`
+                                            : 'Aún no se han realizado ventas en esta sesión.'}
+                                    </p>
+                                    {transactionSearchQuery && (
+                                        <button
+                                            onClick={() => setTransactionSearchQuery('')}
+                                            style={{ marginTop: '1.5rem', background: 'none', border: '1px solid var(--glass-border)', color: 'white', padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer' }}
+                                        >
+                                            Limpiar búsqueda
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ADJUSTMENT REQUEST MODAL */}
+            {showAdjustmentModal && adjustingTransaction && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4500, padding: '1rem' }}>
+                    <div className="glass-card" style={{ padding: '2.5rem', width: '100%', maxWidth: '450px' }}>
+                        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                            <div style={{ background: adjustmentType === 'deletion' ? 'rgba(239, 68, 68, 0.1)' : adjustmentType === 'product_edit' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(99, 102, 241, 0.1)', width: '60px', height: '60px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                                {adjustmentType === 'deletion' ? <Trash2 size={30} color="#ef4444" /> : adjustmentType === 'product_edit' ? <ShoppingBag size={30} color="#10b981" /> : <Edit2 size={30} color="var(--primary)" />}
+                            </div>
+                            <h2>Solicitar {adjustmentType === 'deletion' ? 'Eliminación' : 'Modificación'}</h2>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                Venta #{adjustingTransaction.id} por <span style={{ color: 'white', fontWeight: 'bold' }}>₡{new Intl.NumberFormat('es-CR').format(adjustingTransaction.total)}</span>
+                            </p>
+                        </div>
+
+                        {adjustmentType === 'payment_change' && (
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 'bold', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                                    Nuevo Método de Pago
+                                </label>
+                                <select
+                                    value={newPaymentTypeId}
+                                    onChange={(e) => setNewPaymentTypeId(e.target.value)}
+                                    style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--glass-border)', outline: 'none' }}
+                                >
+                                    <option value="" style={{ background: '#1e293b' }}>-- Seleccionar --</option>
+                                    {paymentTypes.filter(t => t.id !== adjustingTransaction.PaymentTypeId && t.name !== 'Pendiente').map(type => (
+                                        <option key={type.id} value={type.id} style={{ background: '#1e293b' }}>{type.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {adjustmentType === 'product_edit' && (
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 'bold', marginBottom: '1rem', textTransform: 'uppercase' }}>
+                                    Modificar Cantidades
+                                </label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    {editingProducts.map((p, idx) => (
+                                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.8rem', background: 'rgba(255,255,255,0.03)', borderRadius: '0.5rem' }}>
+                                            <span style={{ fontSize: '0.9rem', flex: 1 }}>{p.Product?.name}</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <button
+                                                    onClick={() => {
+                                                        const newArr = [...editingProducts];
+                                                        newArr[idx].newQuantity = Math.max(0, newArr[idx].newQuantity - 1);
+                                                        setEditingProducts(newArr);
+                                                    }}
+                                                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '4px', width: '24px', height: '24px' }}
+                                                >
+                                                    -
+                                                </button>
+                                                <span style={{ fontWeight: 'bold', width: '20px', textAlign: 'center' }}>{p.newQuantity}</span>
+                                                <button
+                                                    onClick={() => {
+                                                        const newArr = [...editingProducts];
+                                                        newArr[idx].newQuantity = newArr[idx].newQuantity + 1;
+                                                        setEditingProducts(newArr);
+                                                    }}
+                                                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '4px', width: '24px', height: '24px' }}
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div style={{ marginBottom: '2rem' }}>
+                            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 'bold', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                                Motivo de la Solicitud
+                            </label>
+                            <textarea
+                                value={adjustmentReason}
+                                onChange={(e) => setAdjustmentReason(e.target.value)}
+                                placeholder="Explica por qué es necesario este cambio..."
+                                style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--glass-border)', outline: 'none', minHeight: '100px', resize: 'none' }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button
+                                onClick={() => {
+                                    setShowAdjustmentModal(false);
+                                    setAdjustingTransaction(null);
+                                }}
+                                style={{ flex: 1, padding: '1rem', borderRadius: '0.8rem', background: 'rgba(255,255,255,0.05)', color: 'white', border: 'none', cursor: 'pointer' }}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleRequestAdjustment}
+                                disabled={paymentLoading}
+                                style={{
+                                    flex: 1.5,
+                                    padding: '1rem',
+                                    borderRadius: '0.8rem',
+                                    background: adjustmentType === 'deletion' ? '#ef4444' : 'var(--primary)',
+                                    color: 'white',
+                                    border: 'none',
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                    opacity: paymentLoading ? 0.7 : 1
+                                }}
+                            >
+                                {paymentLoading ? 'Enviando...' : 'ENVIAR SOLICITUD'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

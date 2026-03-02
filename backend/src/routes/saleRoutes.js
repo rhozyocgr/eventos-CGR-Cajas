@@ -15,7 +15,14 @@ import {
     getPendingOpenings,
     authorizeOpening,
     confirmOpening,
-    getDashboardStats
+    getDashboardStats,
+    getRecentTransactions,
+    createAdjustmentRequest,
+    getPendingAdjustments,
+    processAdjustment,
+    getAllOpenings,
+    getAllAdjustments,
+    getAllTransactions
 } from '../controllers/saleController.js';
 
 const router = express.Router();
@@ -37,5 +44,16 @@ router.get('/pending-openings', getPendingOpenings);
 router.post('/authorize-opening/:id', authorizeOpening);
 router.post('/confirm-opening/:id', confirmOpening);
 router.put('/close-cash/:id', closeCash);
+
+// Transaction adjustments/requests
+router.get('/recent', getRecentTransactions);
+router.post('/adjustment-request', createAdjustmentRequest);
+router.get('/pending-adjustments', getPendingAdjustments);
+router.post('/process-adjustment/:id', processAdjustment);
+
+// History
+router.get('/openings-history', getAllOpenings);
+router.get('/adjustments-history', getAllAdjustments);
+router.get('/transactions', getAllTransactions);
 
 export default router;

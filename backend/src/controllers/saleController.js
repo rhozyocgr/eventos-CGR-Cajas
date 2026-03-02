@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { Sale, Transaction, SalesDay, Product, PaymentType, CashClosing, Supplier, User, Event, CashOpening, sequelize } from '../models/index.js';
+import { Sale, Transaction, SalesDay, Product, PaymentType, CashClosing, Supplier, User, Event, CashOpening, TransactionRequest, sequelize } from '../models/index.js';
 
 export const createSale = async (req, res) => {
     const t = await sequelize.transaction();
@@ -217,7 +217,8 @@ export const getDashboardStats = async (req, res) => {
         const topProductsRaw = await Sale.findAll({
             attributes: [
                 'ProductId',
-                [sequelize.fn('SUM', sequelize.col('quantity')), 'totalQuantity']
+                [sequelize.fn('SUM', sequelize.col('quantity')), 'totalQuantity'],
+                [sequelize.fn('SUM', sequelize.col('total')), 'totalRevenue']
             ],
             include: [{ model: Product, attributes: ['name'], required: true }],
             group: ['ProductId', 'Product.id'],
@@ -227,7 +228,8 @@ export const getDashboardStats = async (req, res) => {
 
         const topProducts = topProductsRaw.map(tp => ({
             name: tp.Product?.name || 'Desconocido',
-            total: parseInt(tp.dataValues.totalQuantity || 0)
+            total: parseInt(tp.dataValues.totalQuantity || 0),
+            revenue: parseFloat(tp.dataValues.totalRevenue || 0)
         }));
 
         const productCount = await Product.count();
@@ -648,6 +650,197 @@ export const getPaymentTypes = async (req, res) => {
     try {
         const types = await PaymentType.findAll();
         res.json(types);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+export const getRecentTransactions = async (req, res) => {
+    try {
+        const { salesDayId, userId } = req.query;
+        const whereClause = { SalesDayId: salesDayId };
+        if (userId) whereClause.UserId = userId;
+
+        const transactions = await Transaction.findAll({
+            where: whereClause,
+            include: [
+                { model: PaymentType },
+                { model: Sale, include: [Product] },
+                { model: User, attributes: ['name'] }
+            ],
+            order: [['timestamp', 'DESC']]
+        });
+        res.json(transactions);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const createAdjustmentRequest = async (req, res) => {
+    try {
+        const { transactionId, type, reason, details, requesterId } = req.body;
+
+        const request = await TransactionRequest.create({
+            TransactionId: transactionId,
+            requesterId,
+            type,
+            reason,
+            details,
+            status: 'pending'
+        });
+
+        res.status(201).json(request);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+export const getPendingAdjustments = async (req, res) => {
+    try {
+        const requests = await TransactionRequest.findAll({
+            where: { status: 'pending' },
+            include: [
+                { model: User, as: 'requester', attributes: ['name', 'email'] },
+                {
+                    model: Transaction,
+                    include: [
+                        { model: PaymentType },
+                        { model: SalesDay, include: [Event] },
+                        { model: Sale, include: [Product] }
+                    ]
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(requests);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const processAdjustment = async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+        const { id } = req.params;
+        const { status, adminId } = req.body; // 'approved' or 'denied'
+
+        const request = await TransactionRequest.findByPk(id, {
+            include: [Transaction]
+        });
+
+        if (!request) throw new Error('Solicitud no encontrada');
+        if (request.status !== 'pending') throw new Error('La solicitud ya ha sido procesada');
+
+        request.status = status;
+        request.authorizedById = adminId;
+        request.authorizedAt = new Date();
+        await request.save({ transaction: t });
+
+        if (status === 'approved') {
+            const transaction = request.Transaction;
+            if (request.type === 'payment_change') {
+                transaction.PaymentTypeId = request.details.newPaymentTypeId;
+                await transaction.save({ transaction: t });
+            } else if (request.type === 'deletion') {
+                await transaction.destroy({ transaction: t });
+            } else if (request.type === 'product_edit') {
+                const { items } = request.details; // Array of { saleId, newQuantity }
+
+                for (const item of items) {
+                    const sale = await Sale.findByPk(item.saleId, { include: [Product] });
+                    if (sale) {
+                        if (item.newQuantity <= 0) {
+                            await sale.destroy({ transaction: t });
+                        } else {
+                            sale.quantity = item.newQuantity;
+                            sale.total = item.newQuantity * sale.Product.price;
+                            await sale.save({ transaction: t });
+                        }
+                    }
+                }
+
+                // Recalculate transaction total
+                const allSales = await Sale.findAll({
+                    where: { TransactionId: transaction.id },
+                    transaction: t
+                });
+
+                const newTotal = allSales.reduce((sum, s) => sum + parseFloat(s.total), 0);
+
+                if (newTotal === 0) {
+                    await transaction.destroy({ transaction: t });
+                } else {
+                    transaction.total = newTotal;
+                    await transaction.save({ transaction: t });
+                }
+            }
+        }
+
+        await t.commit();
+        res.json({ message: `Solicitud ${status === 'approved' ? 'aprobada' : 'rechazada'} con éxito`, request });
+    } catch (error) {
+        await t.rollback();
+        res.status(400).json({ error: error.message });
+    }
+};
+
+export const getAllOpenings = async (req, res) => {
+    try {
+        const openings = await CashOpening.findAll({
+            include: [
+                { model: User, attributes: ['name', 'email'] },
+                { model: SalesDay, attributes: ['date', 'description'] },
+                { model: User, as: 'authorizer', attributes: ['name'] }
+            ],
+            order: [['openingTime', 'DESC']]
+        });
+        res.json(openings);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const getAllAdjustments = async (req, res) => {
+    try {
+        const requests = await TransactionRequest.findAll({
+            include: [
+                { model: User, as: 'requester', attributes: ['name', 'email'] },
+                { model: User, as: 'authorizer', attributes: ['name'] },
+                {
+                    model: Transaction,
+                    include: [
+                        { model: PaymentType },
+                        { model: SalesDay, include: [Event] },
+                        { model: Sale, include: [Product] }
+                    ]
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(requests);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const getAllTransactions = async (req, res) => {
+    try {
+        const transactions = await Transaction.findAll({
+            include: [
+                { model: User, attributes: ['name', 'email'] },
+                {
+                    model: SalesDay,
+                    attributes: ['date'],
+                    include: [{ model: Event, attributes: ['name'] }]
+                },
+                { model: PaymentType, attributes: ['name'] },
+                {
+                    model: Sale,
+                    include: [{ model: Product, attributes: ['name'] }]
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(transactions);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
