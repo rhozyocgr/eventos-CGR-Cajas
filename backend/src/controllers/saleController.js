@@ -336,9 +336,14 @@ export const updatePaymentType = async (req, res) => {
 export const getSalesSummary = async (req, res) => {
     try {
         const { salesDayId, userId, since } = req.query;
-        console.log(`FETCH SUMMARY - Day: ${salesDayId}, User: ${userId}, Since: ${since}`);
 
         if (!salesDayId) throw new Error('salesDayId is required');
+
+        // Sanitize inputs to avoid "undefined" or "null" as strings
+        const cleanUserId = (userId === 'undefined' || userId === 'null' || !userId) ? null : userId;
+        const cleanSince = (since === 'undefined' || since === 'null' || !since) ? null : since;
+
+        console.log(`FETCH SUMMARY - Day: ${salesDayId}, User: ${cleanUserId || 'ALL'}, Since: ${cleanSince || 'START'}`);
 
         // Find the last cash closing for this day
         const lastClosing = await CashClosing.findOne({
@@ -347,12 +352,12 @@ export const getSalesSummary = async (req, res) => {
         });
 
         const transactionWhere = { SalesDayId: salesDayId };
-        if (userId) transactionWhere.UserId = userId;
+        if (cleanUserId) transactionWhere.UserId = cleanUserId;
 
         // Determine the start time for the summary
-        const startTime = since ? new Date(since) : (lastClosing ? lastClosing.timestamp : null);
+        const startTime = cleanSince ? new Date(cleanSince) : (lastClosing ? lastClosing.timestamp : null);
 
-        if (startTime) {
+        if (startTime && !isNaN(startTime.getTime())) {
             transactionWhere.timestamp = { [Op.gte]: startTime };
         }
 

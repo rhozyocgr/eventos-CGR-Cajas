@@ -139,7 +139,9 @@ const Cashier = () => {
     const fetchSummary = async (dayId) => {
         try {
             setLoading(true);
-            const res = await axios.get(`${API_URL}/sales/summary?salesDayId=${dayId}`);
+            const res = await axios.get(`${API_URL}/sales/summary`, {
+                params: { salesDayId: dayId }
+            });
             setSummary(res.data);
             fetchClosings(dayId);
         } catch (err) {

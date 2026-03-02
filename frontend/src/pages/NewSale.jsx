@@ -169,10 +169,16 @@ const NewSale = () => {
 
     const fetchSessionTotal = async (dayId, opening = null) => {
         const activeOpening = opening || cashOpening;
-        if (!user || !dayId || !activeOpening) return;
+        if (!user || !dayId || !activeOpening || activeOpening.status !== 'active') return;
         try {
             // Enviamos el userId y la hora de apertura para que el total sea solo de esta sesión
-            const res = await axios.get(`${API_URL}/sales/summary?salesDayId=${dayId}&userId=${user.id}&since=${activeOpening.openingTime}`);
+            const res = await axios.get(`${API_URL}/sales/summary`, {
+                params: {
+                    salesDayId: dayId,
+                    userId: user.id,
+                    since: activeOpening.openingTime
+                }
+            });
             setSessionTotal(res.data.totalGeneral || 0);
             setSessionSummary(res.data);
         } catch (err) {
