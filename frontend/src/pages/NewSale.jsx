@@ -85,6 +85,7 @@ const NewSale = () => {
     const [adjustmentReason, setAdjustmentReason] = useState('');
     const [editingProducts, setEditingProducts] = useState([]);
     const [transactionSearchQuery, setTransactionSearchQuery] = useState('');
+    const [todayMissing, setTodayMissing] = useState(false);
 
     const deleteReasons = [
         'Creado por error',
@@ -133,25 +134,25 @@ const NewSale = () => {
     const fetchEventData = async (eventId, dayId = null) => {
         try {
             setLoading(true);
+            setTodayMissing(false);
             const res = await axios.get(`${API_URL}/events/${eventId}/days`);
             setEventDays(res.data);
 
-            if (dayId) {
-                const day = res.data.find(d => d.id.toString() === dayId.toString());
-                if (day) {
-                    setSelectedDay(day);
-                    fetchPendingSales(day.id);
-                    checkCashOpening(day.id);
-                }
+            const now = new Date();
+            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const todayDay = res.data.find(d => d.date === today);
+
+            if (todayDay) {
+                // Prioridad absoluta: Si hoy existe en el evento, lo usamos
+                setSelectedDay(todayDay);
+                localStorage.setItem('selectedDayId', todayDay.id);
+                fetchPendingSales(todayDay.id);
+                checkCashOpening(todayDay.id);
             } else {
-                const today = new Date().toISOString().split('T')[0];
-                const todayDay = res.data.find(d => d.date === today);
-                if (todayDay) {
-                    setSelectedDay(todayDay);
-                    localStorage.setItem('selectedDayId', todayDay.id);
-                    fetchPendingSales(todayDay.id);
-                    checkCashOpening(todayDay.id);
-                }
+                // Si el evento no tiene el día hoy, bloqueamos la selección
+                setTodayMissing(true);
+                setSelectedDay(null);
+                localStorage.removeItem('selectedDayId');
             }
         } catch (err) {
             toast.error('Error al cargar días del evento');
@@ -276,6 +277,7 @@ const NewSale = () => {
 
     const handleSelectEvent = (event) => {
         setSelectedEvent(event);
+        setTodayMissing(false);
         localStorage.setItem('selectedEventId', event.id);
         localStorage.removeItem('selectedDayId');
         setSelectedDay(null);
@@ -393,6 +395,7 @@ const NewSale = () => {
         localStorage.removeItem('selectedDayId');
         setSelectedEvent(null);
         setSelectedDay(null);
+        setTodayMissing(false);
         setCashOpening(null);
         setSessionTotal(0);
         setSessionSummary(null);
@@ -611,19 +614,40 @@ const NewSale = () => {
                     </div>
                 </div>
 
-                <h2 style={{ marginBottom: '1.5rem', fontSize: '1.2rem', opacity: 0.8 }}>Selecciona el Día de Venta</h2>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
-                    {eventDays.map(day => (
-                        <div key={day.id} className="glass-card hover-glow"
-                            style={{ padding: '2rem 1rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
-                            onClick={() => handleSelectDay(day)}>
-                            <h3 style={{ color: 'var(--primary)', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
-                                {new Date(day.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-                            </h3>
-                            <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>{day.Products?.length || 0} productos habilitados</p>
+                <h2 style={{ marginBottom: '1.5rem', fontSize: '1.2rem', opacity: 0.8 }}>
+                    {todayMissing ? 'Evento no disponible' : 'Selecciona el Día de Venta'}
+                </h2>
+
+                {todayMissing ? (
+                    <div className="glass-card" style={{ padding: '4rem 2rem', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}>
+                        <div style={{ background: 'rgba(239, 68, 68, 0.1)', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
+                            <AlertCircle size={45} color="#ef4444" />
                         </div>
-                    ))}
-                </div>
+                        <h2 style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '1.8rem' }}>Día no configurado</h2>
+                        <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', margin: '0 auto 2.5rem', lineHeight: '1.6', fontSize: '1.1rem' }}>
+                            El día de hoy (<span style={{ color: 'white', fontWeight: 'bold' }}>{new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</span>)
+                            no se encuentra registrado en el cronograma de <span style={{ color: 'white', fontWeight: 'bold' }}>{selectedEvent.name}</span>.
+                        </p>
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                            <button onClick={handleReset} className="btn btn-primary" style={{ padding: '1rem 2rem', fontWeight: 'bold' }}>
+                                VOLVER A EVENTOS
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem' }}>
+                        {eventDays.map(day => (
+                            <div key={day.id} className="glass-card hover-glow"
+                                style={{ padding: '2rem 1rem', cursor: 'pointer', textAlign: 'center', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                                onClick={() => handleSelectDay(day)}>
+                                <h3 style={{ color: 'var(--primary)', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
+                                    {new Date(day.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                </h3>
+                                <p style={{ fontSize: '0.75rem', opacity: 0.6 }}>{day.Products?.length || 0} productos habilitados</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         );
     }
